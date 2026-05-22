@@ -1,6 +1,8 @@
 import { useEffect, useState } from 'react';
 import Layout from '../../components/Layout';
 import API from '../../api/axios';
+import Modal from '../../components/Modal';
+import Toast from '../../components/Toast';
 
 const fmtDate = (d) => d ? new Date(d).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : '—';
 
@@ -17,6 +19,8 @@ export default function NewsletterList() {
   const [subscribers, setSubscribers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [modal, setModal] = useState({ open: false, id: null });
+  const [toast, setToast] = useState(null);
 
   useEffect(() => {
     API.get('/newsletter')
@@ -24,12 +28,18 @@ export default function NewsletterList() {
       .catch(() => { setError('Failed to load subscribers.'); setLoading(false); });
   }, []);
 
-  const handleDelete = async (id) => {
-    if (!window.confirm('Remove this subscriber?')) return;
+  const handleDelete = (id) => setModal({ open: true, id });
+
+  const confirmDelete = async () => {
+    const id = modal.id;
+    setModal({ open: false, id: null });
     try {
       await API.delete(`/newsletter/${id}`);
-      setSubscribers(subscribers.filter(s => s.id !== id));
-    } catch { alert('Failed to delete.'); }
+      setSubscribers(prev => prev.filter(s => s.id !== id));
+      setToast({ message: 'Subscriber removed.', type: 'success' });
+    } catch {
+      setToast({ message: 'Failed to remove subscriber.', type: 'error' });
+    }
   };
 
   return (
@@ -90,6 +100,20 @@ export default function NewsletterList() {
           </table>
         )}
       </div>
+
+      <Modal
+        isOpen={modal.open}
+        title="Remove Subscriber"
+        message="Are you sure you want to remove this subscriber?"
+        onConfirm={confirmDelete}
+        onCancel={() => setModal({ open: false, id: null })}
+        confirmLabel="Remove"
+        isDelete
+      />
+
+      {toast && (
+        <Toast message={toast.message} type={toast.type} onClose={() => setToast(null)} />
+      )}
     </Layout>
   );
 }

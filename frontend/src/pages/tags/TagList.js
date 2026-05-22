@@ -2,6 +2,8 @@ import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import Layout from '../../components/Layout';
 import API from '../../api/axios';
+import Modal from '../../components/Modal';
+import Toast from '../../components/Toast';
 
 const thStyle = {
   padding: '10px 16px', textAlign: 'left',
@@ -16,6 +18,8 @@ export default function TagList() {
   const [tags, setTags] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [modal, setModal] = useState({ open: false, id: null });
+  const [toast, setToast] = useState(null);
 
   useEffect(() => {
     API.get('/tags')
@@ -23,12 +27,18 @@ export default function TagList() {
       .catch(() => { setError('Failed to load tags.'); setLoading(false); });
   }, []);
 
-  const handleDelete = async (id) => {
-    if (!window.confirm('Delete this tag?')) return;
+  const handleDelete = (id) => setModal({ open: true, id });
+
+  const confirmDelete = async () => {
+    const id = modal.id;
+    setModal({ open: false, id: null });
     try {
       await API.delete(`/tags/${id}`);
-      setTags(tags.filter(t => t.id !== id));
-    } catch { alert('Failed to delete.'); }
+      setTags(prev => prev.filter(t => t.id !== id));
+      setToast({ message: 'Tag deleted.', type: 'success' });
+    } catch {
+      setToast({ message: 'Failed to delete tag.', type: 'error' });
+    }
   };
 
   return (
@@ -91,6 +101,20 @@ export default function TagList() {
           </table>
         )}
       </div>
+
+      <Modal
+        isOpen={modal.open}
+        title="Delete Tag"
+        message="Are you sure you want to delete this tag?"
+        onConfirm={confirmDelete}
+        onCancel={() => setModal({ open: false, id: null })}
+        confirmLabel="Delete"
+        isDelete
+      />
+
+      {toast && (
+        <Toast message={toast.message} type={toast.type} onClose={() => setToast(null)} />
+      )}
     </Layout>
   );
 }

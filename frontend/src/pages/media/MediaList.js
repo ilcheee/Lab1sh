@@ -1,6 +1,8 @@
 import { useEffect, useState } from 'react';
 import Layout from '../../components/Layout';
 import API from '../../api/axios';
+import Modal from '../../components/Modal';
+import Toast from '../../components/Toast';
 
 const fmtDate = (d) => d ? new Date(d).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : '—';
 
@@ -24,6 +26,8 @@ export default function MediaList() {
   const [uploading, setUploading] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [modal, setModal] = useState({ open: false, id: null });
+  const [toast, setToast] = useState(null);
 
   useEffect(() => {
     API.get('/media')
@@ -42,16 +46,25 @@ export default function MediaList() {
       const res = await API.get('/media');
       setMedia(Array.isArray(res.data) ? res.data : []);
       setFile(null);
-    } catch { alert('Upload failed.'); }
+      setToast({ message: 'File uploaded successfully.', type: 'success' });
+    } catch {
+      setToast({ message: 'Upload failed.', type: 'error' });
+    }
     setUploading(false);
   };
 
-  const handleDelete = async (id) => {
-    if (!window.confirm('Delete this file?')) return;
+  const handleDelete = (id) => setModal({ open: true, id });
+
+  const confirmDelete = async () => {
+    const id = modal.id;
+    setModal({ open: false, id: null });
     try {
       await API.delete(`/media/${id}`);
-      setMedia(media.filter(m => m.id !== id));
-    } catch { alert('Failed to delete.'); }
+      setMedia(prev => prev.filter(m => m.id !== id));
+      setToast({ message: 'File deleted.', type: 'success' });
+    } catch {
+      setToast({ message: 'Failed to delete file.', type: 'error' });
+    }
   };
 
   return (
@@ -132,6 +145,20 @@ export default function MediaList() {
           </table>
         )}
       </div>
+
+      <Modal
+        isOpen={modal.open}
+        title="Delete File"
+        message="Are you sure you want to delete this file? This action cannot be undone."
+        onConfirm={confirmDelete}
+        onCancel={() => setModal({ open: false, id: null })}
+        confirmLabel="Delete"
+        isDelete
+      />
+
+      {toast && (
+        <Toast message={toast.message} type={toast.type} onClose={() => setToast(null)} />
+      )}
     </Layout>
   );
 }

@@ -1,6 +1,8 @@
 import { useEffect, useState } from 'react';
 import Layout from '../../components/Layout';
 import API from '../../api/axios';
+import Modal from '../../components/Modal';
+import Toast from '../../components/Toast';
 
 const fmtDate = (d) => d ? new Date(d).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : '—';
 
@@ -33,6 +35,8 @@ export default function CommentList() {
   const [comments, setComments] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [modal, setModal] = useState({ open: false, id: null });
+  const [toast, setToast] = useState(null);
 
   useEffect(() => {
     API.get('/comments')
@@ -40,19 +44,28 @@ export default function CommentList() {
       .catch(() => { setError('Failed to load comments.'); setLoading(false); });
   }, []);
 
-  const handleDelete = async (id) => {
-    if (!window.confirm('Delete this comment?')) return;
+  const handleDelete = (id) => setModal({ open: true, id });
+
+  const confirmDelete = async () => {
+    const id = modal.id;
+    setModal({ open: false, id: null });
     try {
       await API.delete(`/comments/${id}`);
-      setComments(comments.filter(c => c.id !== id));
-    } catch { alert('Failed to delete.'); }
+      setComments(prev => prev.filter(c => c.id !== id));
+      setToast({ message: 'Comment deleted.', type: 'success' });
+    } catch {
+      setToast({ message: 'Failed to delete comment.', type: 'error' });
+    }
   };
 
   const handleStatus = async (id, statusi) => {
     try {
       await API.put(`/comments/${id}`, { statusi });
-      setComments(comments.map(c => c.id === id ? { ...c, statusi } : c));
-    } catch { alert('Failed to update.'); }
+      setComments(prev => prev.map(c => c.id === id ? { ...c, statusi } : c));
+      setToast({ message: 'Comment updated.', type: 'success' });
+    } catch {
+      setToast({ message: 'Failed to update comment.', type: 'error' });
+    }
   };
 
   return (
@@ -121,6 +134,20 @@ export default function CommentList() {
           </table>
         )}
       </div>
+
+      <Modal
+        isOpen={modal.open}
+        title="Delete Comment"
+        message="Are you sure you want to delete this comment? This action cannot be undone."
+        onConfirm={confirmDelete}
+        onCancel={() => setModal({ open: false, id: null })}
+        confirmLabel="Delete"
+        isDelete
+      />
+
+      {toast && (
+        <Toast message={toast.message} type={toast.type} onClose={() => setToast(null)} />
+      )}
     </Layout>
   );
 }

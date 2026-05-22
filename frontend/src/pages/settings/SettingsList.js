@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import Layout from '../../components/Layout';
 import API from '../../api/axios';
+import Toast from '../../components/Toast';
 
 const thStyle = {
   padding: '10px 16px', textAlign: 'left',
@@ -16,6 +17,7 @@ export default function SettingList() {
   const [editing, setEditing] = useState(null);
   const [vlera, setVlera] = useState('');
   const [loading, setLoading] = useState(true);
+  const [toast, setToast] = useState(null);
 
   useEffect(() => {
     API.get('/settings')
@@ -33,7 +35,8 @@ export default function SettingList() {
       await API.put(`/settings/${id}`, { vlera });
       setSettings(settings.map(s => s.id === id ? { ...s, vlera } : s));
       setEditing(null);
-    } catch { alert('Failed to save.'); }
+      setToast({ message: 'Settings saved.', type: 'success' });
+    } catch { setToast({ message: 'Failed to save settings.', type: 'error' }); }
   };
 
   return (
@@ -108,6 +111,10 @@ export default function SettingList() {
           </table>
         )}
       </div>
+
+      {toast && (
+        <Toast message={toast.message} type={toast.type} onClose={() => setToast(null)} />
+      )}
     </Layout>
   );
 }

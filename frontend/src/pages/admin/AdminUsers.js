@@ -1,6 +1,8 @@
 import { useEffect, useState } from 'react';
 import Layout from '../../components/Layout';
 import API from '../../api/axios';
+import Modal from '../../components/Modal';
+import Toast from '../../components/Toast';
 
 const ROLES = { 1: 'Super Admin', 2: 'Editor', 3: 'Author' };
 
@@ -19,6 +21,8 @@ export default function AdminUsers() {
   const [editingId, setEditingId] = useState(null);
   const [editRole, setEditRole] = useState('');
   const [error, setError] = useState('');
+  const [modal, setModal] = useState({ open: false, id: null });
+  const [toast, setToast] = useState(null);
 
   useEffect(() => {
     API.get('/users')
@@ -31,18 +35,23 @@ export default function AdminUsers() {
       await API.put(`/users/${userId}`, { role_id: parseInt(editRole) });
       setUsers(prev => prev.map(u => u.id === userId ? { ...u, role_id: parseInt(editRole) } : u));
       setEditingId(null);
+      setToast({ message: 'Role updated.', type: 'success' });
     } catch {
-      setError('Failed to update role.');
+      setToast({ message: 'Failed to update role.', type: 'error' });
     }
   };
 
-  const handleDelete = async (userId) => {
-    if (!window.confirm('Delete this user? This cannot be undone.')) return;
+  const handleDelete = (userId) => setModal({ open: true, id: userId });
+
+  const confirmDelete = async () => {
+    const userId = modal.id;
+    setModal({ open: false, id: null });
     try {
       await API.delete(`/users/${userId}`);
       setUsers(prev => prev.filter(u => u.id !== userId));
+      setToast({ message: 'User deleted.', type: 'success' });
     } catch {
-      setError('Failed to delete user.');
+      setToast({ message: 'Failed to delete user.', type: 'error' });
     }
   };
 
@@ -74,7 +83,6 @@ export default function AdminUsers() {
           </div>
         ) : (
           <div style={{ background: '#0d0d0d', border: '1px solid rgba(255,255,255,0.07)', borderRadius: 8, overflow: 'hidden' }}>
-            {/* Table header */}
             <div style={{
               display: 'grid', gridTemplateColumns: '1fr 1.6fr 130px 160px',
               padding: '12px 20px', borderBottom: '1px solid rgba(255,255,255,0.06)',
@@ -101,7 +109,6 @@ export default function AdminUsers() {
                   onMouseEnter={e => e.currentTarget.style.background = 'rgba(255,255,255,0.02)'}
                   onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
                 >
-                  {/* Name + avatar */}
                   <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
                     <div style={{
                       width: 30, height: 30, borderRadius: '50%',
@@ -115,10 +122,8 @@ export default function AdminUsers() {
                     </div>
                   </div>
 
-                  {/* Email */}
                   <div style={{ fontSize: 13, color: 'rgba(255,255,255,0.4)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', paddingRight: 12 }}>{u.email}</div>
 
-                  {/* Role */}
                   <div>
                     {isEditing ? (
                       <select
@@ -138,7 +143,6 @@ export default function AdminUsers() {
                     )}
                   </div>
 
-                  {/* Actions */}
                   <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
                     {isEditing ? (
                       <>
@@ -168,6 +172,20 @@ export default function AdminUsers() {
           </div>
         )}
       </div>
+
+      <Modal
+        isOpen={modal.open}
+        title="Delete User"
+        message="Delete this user? This action cannot be undone."
+        onConfirm={confirmDelete}
+        onCancel={() => setModal({ open: false, id: null })}
+        confirmLabel="Delete"
+        isDelete
+      />
+
+      {toast && (
+        <Toast message={toast.message} type={toast.type} onClose={() => setToast(null)} />
+      )}
     </Layout>
   );
 }

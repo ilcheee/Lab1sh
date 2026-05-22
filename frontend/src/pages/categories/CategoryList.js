@@ -2,6 +2,8 @@ import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import Layout from '../../components/Layout';
 import API from '../../api/axios';
+import Modal from '../../components/Modal';
+import Toast from '../../components/Toast';
 
 const thStyle = {
   padding: '10px 16px', textAlign: 'left',
@@ -16,6 +18,8 @@ export default function CategoryList() {
   const [categories, setCategories] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [modal, setModal] = useState({ open: false, id: null });
+  const [toast, setToast] = useState(null);
 
   useEffect(() => {
     API.get('/categories')
@@ -23,12 +27,18 @@ export default function CategoryList() {
       .catch(() => { setError('Failed to load categories.'); setLoading(false); });
   }, []);
 
-  const handleDelete = async (id) => {
-    if (!window.confirm('Delete this category?')) return;
+  const handleDelete = (id) => setModal({ open: true, id });
+
+  const confirmDelete = async () => {
+    const id = modal.id;
+    setModal({ open: false, id: null });
     try {
       await API.delete(`/categories/${id}`);
-      setCategories(categories.filter(c => c.id !== id));
-    } catch { alert('Failed to delete.'); }
+      setCategories(prev => prev.filter(c => c.id !== id));
+      setToast({ message: 'Category deleted.', type: 'success' });
+    } catch {
+      setToast({ message: 'Failed to delete category.', type: 'error' });
+    }
   };
 
   return (
@@ -95,6 +105,20 @@ export default function CategoryList() {
           </table>
         )}
       </div>
+
+      <Modal
+        isOpen={modal.open}
+        title="Delete Category"
+        message="Are you sure you want to delete this category?"
+        onConfirm={confirmDelete}
+        onCancel={() => setModal({ open: false, id: null })}
+        confirmLabel="Delete"
+        isDelete
+      />
+
+      {toast && (
+        <Toast message={toast.message} type={toast.type} onClose={() => setToast(null)} />
+      )}
     </Layout>
   );
 }

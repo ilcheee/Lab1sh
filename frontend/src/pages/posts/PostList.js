@@ -2,6 +2,8 @@ import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import Layout from '../../components/Layout';
 import API from '../../api/axios';
+import Modal from '../../components/Modal';
+import Toast from '../../components/Toast';
 
 const fmtDate = (d) => d ? new Date(d).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : '—';
 
@@ -41,6 +43,8 @@ export default function PostList() {
   const [posts, setPosts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [modal, setModal] = useState({ open: false, id: null });
+  const [toast, setToast] = useState(null);
 
   useEffect(() => {
     API.get('/posts')
@@ -48,12 +52,18 @@ export default function PostList() {
       .catch(() => { setError('Failed to load posts.'); setLoading(false); });
   }, []);
 
-  const handleDelete = async (id) => {
-    if (!window.confirm('Delete this post?')) return;
+  const handleDelete = (id) => setModal({ open: true, id });
+
+  const confirmDelete = async () => {
+    const id = modal.id;
+    setModal({ open: false, id: null });
     try {
       await API.delete(`/posts/${id}`);
-      setPosts(posts.filter(p => p.id !== id));
-    } catch { alert('Failed to delete.'); }
+      setPosts(prev => prev.filter(p => p.id !== id));
+      setToast({ message: 'Post deleted.', type: 'success' });
+    } catch {
+      setToast({ message: 'Failed to delete post.', type: 'error' });
+    }
   };
 
   return (
@@ -124,6 +134,20 @@ export default function PostList() {
           </table>
         )}
       </div>
+
+      <Modal
+        isOpen={modal.open}
+        title="Delete Post"
+        message="Are you sure you want to delete this post? This action cannot be undone."
+        onConfirm={confirmDelete}
+        onCancel={() => setModal({ open: false, id: null })}
+        confirmLabel="Delete"
+        isDelete
+      />
+
+      {toast && (
+        <Toast message={toast.message} type={toast.type} onClose={() => setToast(null)} />
+      )}
     </Layout>
   );
 }
