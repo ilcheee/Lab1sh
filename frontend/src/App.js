@@ -32,17 +32,33 @@ import MediaList from './pages/media/MediaList';
 import SettingList from './pages/settings/SettingsList';
 import NewsletterList from './pages/newsletter/NewsletterList';
 
-// Requires any authenticated user
+// Any authenticated user
 const AuthRoute = ({ children }) => {
   const { token } = useAuth();
   return token ? children : <Navigate to="/login" />;
 };
 
-// Requires role_id === 1 (Super Admin)
+// role_id 1–2 (super_admin, admin)
 const AdminRoute = ({ children }) => {
   const { token, user } = useAuth();
   if (!token) return <Navigate to="/login" />;
-  if (user?.role_id !== 1) return <Navigate to="/profile" />;
+  if (!user || user.role_id > 2) return <Navigate to="/profile" />;
+  return children;
+};
+
+// role_id 1–4 (super_admin through editor)
+const EditorRoute = ({ children }) => {
+  const { token, user } = useAuth();
+  if (!token) return <Navigate to="/login" />;
+  if (!user || user.role_id > 4) return <Navigate to="/profile" />;
+  return children;
+};
+
+// role_id 1–6 (anyone who can create content)
+const WriterRoute = ({ children }) => {
+  const { token, user } = useAuth();
+  if (!token) return <Navigate to="/login" />;
+  if (!user || user.role_id > 6) return <Navigate to="/profile" />;
   return children;
 };
 
@@ -66,25 +82,29 @@ function AppRoutes() {
         <Route path="/profile" element={<AuthRoute><UserProfile /></AuthRoute>} />
         <Route path="/profile/:id" element={<UserProfile />} />
 
-        {/* ── Admin ── */}
+        {/* ── Admin only (roles 1–2) ── */}
         <Route path="/admin" element={<AdminRoute><Dashboard /></AdminRoute>} />
         <Route path="/admin/users" element={<AdminRoute><AdminUsers /></AdminRoute>} />
-        <Route path="/posts" element={<AdminRoute><PostList /></AdminRoute>} />
-        <Route path="/posts/new" element={<AdminRoute><PostForm /></AdminRoute>} />
-        <Route path="/posts/edit/:id" element={<AdminRoute><PostForm /></AdminRoute>} />
-        <Route path="/categories" element={<AdminRoute><CategoryList /></AdminRoute>} />
-        <Route path="/categories/new" element={<AdminRoute><CategoryForm /></AdminRoute>} />
-        <Route path="/categories/edit/:id" element={<AdminRoute><CategoryForm /></AdminRoute>} />
-        <Route path="/tags" element={<AdminRoute><TagList /></AdminRoute>} />
-        <Route path="/tags/new" element={<AdminRoute><TagForm /></AdminRoute>} />
-        <Route path="/tags/edit/:id" element={<AdminRoute><TagForm /></AdminRoute>} />
-        <Route path="/comments" element={<AdminRoute><CommentList /></AdminRoute>} />
-        <Route path="/pages" element={<AdminRoute><PageList /></AdminRoute>} />
-        <Route path="/pages/new" element={<AdminRoute><PageForm /></AdminRoute>} />
-        <Route path="/pages/edit/:id" element={<AdminRoute><PageForm /></AdminRoute>} />
-        <Route path="/media" element={<AdminRoute><MediaList /></AdminRoute>} />
         <Route path="/settings" element={<AdminRoute><SettingList /></AdminRoute>} />
         <Route path="/newsletter" element={<AdminRoute><NewsletterList /></AdminRoute>} />
+
+        {/* ── Editor+ (roles 1–4) ── */}
+        <Route path="/categories" element={<EditorRoute><CategoryList /></EditorRoute>} />
+        <Route path="/categories/new" element={<EditorRoute><CategoryForm /></EditorRoute>} />
+        <Route path="/categories/edit/:id" element={<EditorRoute><CategoryForm /></EditorRoute>} />
+        <Route path="/tags" element={<EditorRoute><TagList /></EditorRoute>} />
+        <Route path="/tags/new" element={<EditorRoute><TagForm /></EditorRoute>} />
+        <Route path="/tags/edit/:id" element={<EditorRoute><TagForm /></EditorRoute>} />
+        <Route path="/comments" element={<EditorRoute><CommentList /></EditorRoute>} />
+        <Route path="/pages" element={<EditorRoute><PageList /></EditorRoute>} />
+        <Route path="/pages/new" element={<EditorRoute><PageForm /></EditorRoute>} />
+        <Route path="/pages/edit/:id" element={<EditorRoute><PageForm /></EditorRoute>} />
+
+        {/* ── Writer+ (roles 1–6) ── */}
+        <Route path="/posts" element={<WriterRoute><PostList /></WriterRoute>} />
+        <Route path="/posts/new" element={<WriterRoute><PostForm /></WriterRoute>} />
+        <Route path="/posts/edit/:id" element={<WriterRoute><PostForm /></WriterRoute>} />
+        <Route path="/media" element={<WriterRoute><MediaList /></WriterRoute>} />
       </Routes>
     </BrowserRouter>
   );

@@ -2,6 +2,31 @@ import { useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 
+function NavCTA({ user, onClose }) {
+  const role = user?.role_id;
+  if (!role) return null;
+
+  if (role <= 2) {
+    return (
+      <Link to="/admin" onClick={onClose} className="ubt-btn ubt-btn-outline" style={{ padding: '7px 18px', fontSize: 13 }}>
+        Admin Panel
+      </Link>
+    );
+  }
+  if (role <= 6) {
+    return (
+      <Link to="/blog/new" onClick={onClose} className="ubt-btn ubt-btn-secondary" style={{ padding: '7px 18px', fontSize: 13 }}>
+        Write
+      </Link>
+    );
+  }
+  return (
+    <Link to="/profile" onClick={onClose} className="ubt-btn ubt-btn-outline" style={{ padding: '7px 18px', fontSize: 13 }}>
+      Profile
+    </Link>
+  );
+}
+
 export default function PublicLayout({ children }) {
   const [menuOpen, setMenuOpen] = useState(false);
   const { pathname } = useLocation();
@@ -53,18 +78,7 @@ export default function PublicLayout({ children }) {
           <div style={{ display: 'flex', alignItems: 'center', gap: 10 }} className="desktop-auth">
             {user ? (
               <>
-                <Link to="/blog/new" className="ubt-btn ubt-btn-secondary" style={{ padding: '7px 18px', fontSize: 13 }}>
-                  Write
-                </Link>
-                {user.role_id === 1 ? (
-                  <Link to="/admin" className="ubt-btn ubt-btn-outline" style={{ padding: '7px 18px', fontSize: 13 }}>
-                    Admin
-                  </Link>
-                ) : (
-                  <Link to="/profile" className="ubt-btn ubt-btn-outline" style={{ padding: '7px 18px', fontSize: 13 }}>
-                    Profile
-                  </Link>
-                )}
+                <NavCTA user={user} />
                 <button onClick={handleLogout} className="ubt-btn ubt-btn-primary" style={{ padding: '7px 18px', fontSize: 13 }}>
                   Log Out
                 </button>
@@ -97,11 +111,7 @@ export default function PublicLayout({ children }) {
               <div style={{ display: 'flex', gap: 10, marginTop: 8, flexWrap: 'wrap' }}>
                 {user ? (
                   <>
-                    <Link to="/blog/new" onClick={() => setMenuOpen(false)} className="ubt-btn ubt-btn-secondary" style={{ fontSize: 13 }}>Write</Link>
-                    {user.role_id === 1
-                      ? <Link to="/admin" onClick={() => setMenuOpen(false)} className="ubt-btn ubt-btn-outline" style={{ fontSize: 13 }}>Admin</Link>
-                      : <Link to="/profile" onClick={() => setMenuOpen(false)} className="ubt-btn ubt-btn-outline" style={{ fontSize: 13 }}>Profile</Link>
-                    }
+                    <NavCTA user={user} onClose={() => setMenuOpen(false)} />
                     <button onClick={() => { handleLogout(); setMenuOpen(false); }} className="ubt-btn ubt-btn-primary" style={{ fontSize: 13 }}>Log Out</button>
                   </>
                 ) : (

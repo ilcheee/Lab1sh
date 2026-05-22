@@ -1,20 +1,23 @@
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 
-const navItems = [
-  { to: '/admin',        icon: '▦',  label: 'Dashboard'   },
-  { to: '/posts',        icon: '✎',  label: 'Posts'       },
-  { to: '/categories',   icon: '⊞',  label: 'Categories'  },
-  { to: '/tags',         icon: '⊛',  label: 'Tags'        },
-  { to: '/comments',     icon: '✉',  label: 'Comments'    },
-  { to: '/pages',        icon: '☰',  label: 'Pages'       },
-  { to: '/media',        icon: '⊡',  label: 'Media'       },
-  { to: '/admin/users',  icon: '◎',  label: 'Users'       },
-  { to: '/settings',     icon: '⚙',  label: 'Settings'    },
-  { to: '/newsletter',   icon: '◈',  label: 'Newsletter'  },
+const ALL_NAV_ITEMS = [
+  { to: '/admin',        icon: '▦',  label: 'Dashboard',  minRole: 1, maxRole: 2  },
+  { to: '/posts',        icon: '✎',  label: 'Posts',      minRole: 1, maxRole: 6  },
+  { to: '/categories',   icon: '⊞',  label: 'Categories', minRole: 1, maxRole: 4  },
+  { to: '/tags',         icon: '⊛',  label: 'Tags',       minRole: 1, maxRole: 4  },
+  { to: '/comments',     icon: '✉',  label: 'Comments',   minRole: 1, maxRole: 4  },
+  { to: '/pages',        icon: '☰',  label: 'Pages',      minRole: 1, maxRole: 4  },
+  { to: '/media',        icon: '⊡',  label: 'Media',      minRole: 1, maxRole: 6  },
+  { to: '/admin/users',  icon: '◎',  label: 'Users',      minRole: 1, maxRole: 2  },
+  { to: '/settings',     icon: '⚙',  label: 'Settings',   minRole: 1, maxRole: 2  },
+  { to: '/newsletter',   icon: '◈',  label: 'Newsletter', minRole: 1, maxRole: 2  },
 ];
 
-const ROLE_LABEL = { 1: 'Super Admin', 2: 'Editor', 3: 'Author' };
+const ROLE_LABEL = {
+  1: 'Super Admin', 2: 'Admin', 3: 'Moderator', 4: 'Editor',
+  5: 'Author', 6: 'Contributor', 7: 'Member', 8: 'Guest',
+};
 
 export default function Sidebar() {
   const { user, logout } = useAuth();
@@ -24,6 +27,9 @@ export default function Sidebar() {
   const handleLogout = () => { logout(); navigate('/login'); };
 
   const isActive = (to) => pathname === to || (to !== '/admin' && pathname.startsWith(to));
+
+  const role = user?.role_id || 8;
+  const navItems = ALL_NAV_ITEMS.filter(item => role >= item.minRole && role <= item.maxRole);
 
   return (
     <div style={{
@@ -55,7 +61,7 @@ export default function Sidebar() {
             {user?.emri || 'Admin'}
           </div>
           <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.25)' }}>
-            {ROLE_LABEL[user?.role_id] || 'Author'}
+            {ROLE_LABEL[role] || 'Guest'}
           </div>
         </div>
       </div>

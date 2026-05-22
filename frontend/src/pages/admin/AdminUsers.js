@@ -3,19 +3,37 @@ import Layout from '../../components/Layout';
 import API from '../../api/axios';
 import Modal from '../../components/Modal';
 import Toast from '../../components/Toast';
+import { useAuth } from '../../context/AuthContext';
 
-const ROLES = { 1: 'Super Admin', 2: 'Editor', 3: 'Author' };
+const ALL_ROLES = [
+  { id: 1, label: 'Super Admin', icon: '👑' },
+  { id: 2, label: 'Admin',       icon: '⚙️' },
+  { id: 3, label: 'Moderator',   icon: '🛡️' },
+  { id: 4, label: 'Editor',      icon: '📚' },
+  { id: 5, label: 'Author',      icon: '✍️' },
+  { id: 6, label: 'Contributor', icon: '📝' },
+  { id: 7, label: 'Member',      icon: '👤' },
+  { id: 8, label: 'Guest',       icon: '👀' },
+];
+
+const ROLE_MAP = Object.fromEntries(ALL_ROLES.map(r => [r.id, r]));
 
 const roleColor = (role_id) => {
-  if (role_id === 1) return { color: '#fff', bg: 'rgba(255,255,255,0.08)', border: 'rgba(255,255,255,0.15)' };
-  if (role_id === 2) return { color: '#60a5fa', bg: 'rgba(96,165,250,0.08)', border: 'rgba(96,165,250,0.2)' };
-  return { color: 'rgba(255,255,255,0.45)', bg: 'rgba(255,255,255,0.04)', border: 'rgba(255,255,255,0.08)' };
+  if (role_id === 1) return { color: '#000',                    bg: '#fff',                      border: 'rgba(255,255,255,0.3)'  };
+  if (role_id === 2) return { color: 'rgba(255,255,255,0.85)',  bg: 'rgba(255,255,255,0.15)',    border: 'rgba(255,255,255,0.25)' };
+  if (role_id === 3) return { color: '#ff6464',                 bg: 'rgba(255,100,100,0.15)',    border: 'rgba(255,100,100,0.3)'  };
+  if (role_id === 4) return { color: '#64c864',                 bg: 'rgba(100,200,100,0.15)',    border: 'rgba(100,200,100,0.3)'  };
+  if (role_id === 5) return { color: '#6496ff',                 bg: 'rgba(100,150,255,0.15)',    border: 'rgba(100,150,255,0.3)'  };
+  if (role_id === 6) return { color: '#ffc864',                 bg: 'rgba(255,200,100,0.15)',    border: 'rgba(255,200,100,0.3)'  };
+  if (role_id === 7) return { color: 'rgba(255,255,255,0.45)',  bg: 'rgba(255,255,255,0.06)',    border: 'rgba(255,255,255,0.1)'  };
+  return                     { color: 'rgba(255,255,255,0.25)',  bg: 'rgba(255,255,255,0.03)',    border: 'rgba(255,255,255,0.06)' };
 };
 
 const fmtDate = (d) =>
   d ? new Date(d).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : '—';
 
 export default function AdminUsers() {
+  const { user: currentUser } = useAuth();
   const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [editingId, setEditingId] = useState(null);
@@ -23,6 +41,11 @@ export default function AdminUsers() {
   const [error, setError] = useState('');
   const [modal, setModal] = useState({ open: false, id: null });
   const [toast, setToast] = useState(null);
+
+  // Admins (role 2) can only assign roles 3–8; super_admin (role 1) sees all
+  const assignableRoles = currentUser?.role_id === 1
+    ? ALL_ROLES
+    : ALL_ROLES.filter(r => r.id >= 3);
 
   useEffect(() => {
     API.get('/users')
@@ -84,7 +107,7 @@ export default function AdminUsers() {
         ) : (
           <div style={{ background: '#0d0d0d', border: '1px solid rgba(255,255,255,0.07)', borderRadius: 8, overflow: 'hidden' }}>
             <div style={{
-              display: 'grid', gridTemplateColumns: '1fr 1.6fr 130px 160px',
+              display: 'grid', gridTemplateColumns: '1fr 1.6fr 160px 160px',
               padding: '12px 20px', borderBottom: '1px solid rgba(255,255,255,0.06)',
               fontSize: 11, fontWeight: 600, color: 'rgba(255,255,255,0.3)',
               textTransform: 'uppercase', letterSpacing: '0.5px',
@@ -96,12 +119,13 @@ export default function AdminUsers() {
               <div style={{ padding: '40px', textAlign: 'center', color: 'rgba(255,255,255,0.3)', fontSize: 14 }}>No users found.</div>
             ) : users.map((u, i) => {
               const rc = roleColor(u.role_id);
+              const roleInfo = ROLE_MAP[u.role_id];
               const isEditing = editingId === u.id;
               return (
                 <div
                   key={u.id}
                   style={{
-                    display: 'grid', gridTemplateColumns: '1fr 1.6fr 130px 160px',
+                    display: 'grid', gridTemplateColumns: '1fr 1.6fr 160px 160px',
                     padding: '14px 20px', alignItems: 'center',
                     borderBottom: i < users.length - 1 ? '1px solid rgba(255,255,255,0.05)' : 'none',
                     transition: 'background 0.12s',
@@ -132,13 +156,14 @@ export default function AdminUsers() {
                         className="ubt-input"
                         style={{ padding: '4px 8px', fontSize: 12 }}
                       >
-                        <option value="1">Super Admin</option>
-                        <option value="2">Editor</option>
-                        <option value="3">Author</option>
+                        {assignableRoles.map(r => (
+                          <option key={r.id} value={r.id}>{r.icon} {r.label}</option>
+                        ))}
                       </select>
                     ) : (
-                      <span style={{ fontSize: 11, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.3px', color: rc.color, background: rc.bg, border: `1px solid ${rc.border}`, borderRadius: 25, padding: '2px 8px' }}>
-                        {ROLES[u.role_id] || 'Author'}
+                      <span style={{ fontSize: 11, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.3px', color: rc.color, background: rc.bg, border: `1px solid ${rc.border}`, borderRadius: 25, padding: '2px 8px', display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+                        <span style={{ fontSize: 12 }}>{roleInfo?.icon}</span>
+                        {roleInfo?.label || 'Unknown'}
                       </span>
                     )}
                   </div>

@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { useNavigate, useParams, Link } from 'react-router-dom';
 import Layout from '../../components/Layout';
 import API from '../../api/axios';
+import { useAuth } from '../../context/AuthContext';
 
 const labelStyle = {
   display: 'block', color: 'rgba(255,255,255,0.35)', fontSize: 11, fontWeight: 600,
@@ -11,7 +12,9 @@ const labelStyle = {
 export default function PostForm() {
   const { id } = useParams();
   const navigate = useNavigate();
+  const { user } = useAuth();
   const isEdit = !!id;
+  const isContributor = user?.role_id === 6;
 
   const [form, setForm] = useState({
     titulli: '',
@@ -110,9 +113,14 @@ export default function PostForm() {
               <label style={labelStyle}>Status</label>
               <select name="statusi" value={form.statusi} onChange={handleChange} className="ubt-input">
                 <option value="draft">Draft</option>
-                <option value="published">Published</option>
+                {!isContributor && <option value="published">Published</option>}
                 <option value="archived">Archived</option>
               </select>
+              {isContributor && (
+                <div style={{ marginTop: 6, fontSize: 11, color: 'rgba(255,255,255,0.3)' }}>
+                  Needs editor approval to publish
+                </div>
+              )}
             </div>
             <div>
               <label style={labelStyle}>Publish Date</label>

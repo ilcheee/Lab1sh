@@ -1,9 +1,10 @@
 const router = require('express').Router();
 const db = require('../config/db');
 const verifyToken = require('../middleware/auth');
+const { checkRole } = require('../middleware/checkRole');
 
 // ─── GET ALL ─────────────────────────────────────────────
-router.get('/', verifyToken, (req, res) => {
+router.get('/', verifyToken, checkRole('settings.manage'), (req, res) => {
   db.query('SELECT * FROM settings', (err, results) => {
     if (err) return res.status(500).json({ message: 'Gabim në server', error: err });
     res.json(results);
@@ -11,7 +12,7 @@ router.get('/', verifyToken, (req, res) => {
 });
 
 // ─── UPDATE ──────────────────────────────────────────────
-router.put('/:id', verifyToken, (req, res) => {
+router.put('/:id', verifyToken, checkRole('settings.manage'), (req, res) => {
   const { vlera } = req.body;
 
   db.query(

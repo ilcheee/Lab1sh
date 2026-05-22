@@ -14,7 +14,8 @@ router.post('/register', (req, res) => {
   const hash = bcrypt.hashSync(fjalekalimi, 10);
 
   const sql = 'INSERT INTO users (emri, email, fjalekalimi, role_id) VALUES (?, ?, ?, ?)';
-  db.query(sql, [emri, email, hash, role_id || 3], (err, result) => {
+  // Public registration always creates a member (7); role escalation requires admin action
+  db.query(sql, [emri, email, hash, 7], (err, result) => {
     if (err) {
       if (err.code === 'ER_DUP_ENTRY') {
         return res.status(409).json({ message: 'Ky email ekziston tashmë' });
