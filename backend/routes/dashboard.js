@@ -12,12 +12,13 @@ router.get('/public-stats', (req, res) => {
     { key: 'comments',   sql: 'SELECT COUNT(*) AS total FROM comments' },
   ];
   let completed = 0;
+  let sent = false;
   queries.forEach(({ key, sql }) => {
     db.query(sql, (err, results) => {
-      if (err) return res.status(500).json({ message: 'Server error' });
+      if (sent) return;
+      if (err) { sent = true; return res.status(500).json({ message: 'Server error', error: err }); }
       stats[key] = results[0].total;
-      completed++;
-      if (completed === queries.length) res.json(stats);
+      if (++completed === queries.length) { sent = true; res.json(stats); }
     });
   });
 });
@@ -25,7 +26,6 @@ router.get('/public-stats', (req, res) => {
 // ─── DASHBOARD STATS ─────────────────────────────────────
 router.get('/stats', verifyToken, (req, res) => {
   const stats = {};
-
   const queries = [
     { key: 'posts',       sql: 'SELECT COUNT(*) AS total FROM posts' },
     { key: 'categories',  sql: 'SELECT COUNT(*) AS total FROM categories' },
@@ -36,17 +36,14 @@ router.get('/stats', verifyToken, (req, res) => {
     { key: 'newsletter',  sql: 'SELECT COUNT(*) AS total FROM newsletter_subscribers' },
     { key: 'pages',       sql: 'SELECT COUNT(*) AS total FROM pages' },
   ];
-
   let completed = 0;
-
+  let sent = false;
   queries.forEach(({ key, sql }) => {
     db.query(sql, (err, results) => {
-      if (err) return res.status(500).json({ message: 'Gabim në server', error: err });
+      if (sent) return;
+      if (err) { sent = true; return res.status(500).json({ message: 'Server error', error: err }); }
       stats[key] = results[0].total;
-      completed++;
-      if (completed === queries.length) {
-        res.json(stats);
-      }
+      if (++completed === queries.length) { sent = true; res.json(stats); }
     });
   });
 });
