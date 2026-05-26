@@ -17,21 +17,40 @@ const GRID_BG = {
 
 function CommentItem({ comment }) {
   const initials = (comment.autori || 'A').slice(0, 2).toUpperCase();
+  const isContributor = comment.author_role_id === 6;
   return (
-    <div style={{ display: 'flex', gap: 14, padding: '20px 0', borderBottom: '1px solid rgba(255,255,255,0.07)' }}>
+    <div style={{
+      display: 'flex', gap: 14, padding: '20px 0',
+      borderBottom: '1px solid rgba(255,255,255,0.07)',
+      ...(isContributor && {
+        background: 'rgba(135,206,235,0.12)',
+        borderLeft: '3px solid #87CEEB',
+        borderRadius: '0 8px 8px 0',
+        paddingLeft: 16,
+      }),
+    }}>
       <div style={{
         width: 36, height: 36, borderRadius: '50%',
-        background: 'rgba(255,255,255,0.08)',
-        border: '1px solid rgba(255,255,255,0.1)',
+        background: isContributor ? 'rgba(135,206,235,0.2)' : 'rgba(255,255,255,0.08)',
+        border: `1px solid ${isContributor ? 'rgba(135,206,235,0.4)' : 'rgba(255,255,255,0.1)'}`,
         display: 'flex', alignItems: 'center', justifyContent: 'center',
-        fontWeight: 600, fontSize: 12, color: 'rgba(255,255,255,0.7)',
+        fontWeight: 600, fontSize: 12, color: isContributor ? '#87CEEB' : 'rgba(255,255,255,0.7)',
         flexShrink: 0, fontFamily: "'Geist', sans-serif",
       }}>
         {initials}
       </div>
       <div style={{ flex: 1 }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 6, flexWrap: 'wrap' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6, flexWrap: 'wrap' }}>
           <span style={{ fontWeight: 600, color: '#fff', fontSize: 14 }}>{comment.autori || 'Anonymous'}</span>
+          {isContributor && (
+            <span style={{
+              fontSize: 10, fontWeight: 600, color: '#87CEEB',
+              background: 'rgba(135,206,235,0.15)',
+              border: '1px solid rgba(135,206,235,0.3)',
+              borderRadius: 10, padding: '1px 7px',
+              textTransform: 'uppercase', letterSpacing: '0.4px',
+            }}>Contributor</span>
+          )}
           <span style={{ color: 'rgba(255,255,255,0.25)', fontSize: 13 }}>{fmtDate(comment.data || comment.created_at)}</span>
         </div>
         <p style={{ color: 'rgba(255,255,255,0.55)', fontSize: 15, lineHeight: 1.7, margin: 0 }}>{comment.permbajtja}</p>

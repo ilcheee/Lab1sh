@@ -105,7 +105,20 @@ export default function CommentList() {
                   onMouseEnter={e => e.currentTarget.style.background = 'rgba(255,255,255,0.02)'}
                   onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
                 >
-                  <td style={{ ...tdStyle, color: 'rgba(255,255,255,0.7)', fontWeight: 500, whiteSpace: 'nowrap' }}>{c.autori || '—'}</td>
+                  <td style={{ ...tdStyle, fontWeight: 500, whiteSpace: 'nowrap' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                      <span style={{ color: 'rgba(255,255,255,0.7)' }}>{c.autori || '—'}</span>
+                      {c.author_role_id === 6 && (
+                        <span style={{
+                          fontSize: 10, fontWeight: 600, color: '#87CEEB',
+                          background: 'rgba(135,206,235,0.15)',
+                          border: '1px solid rgba(135,206,235,0.3)',
+                          borderRadius: 10, padding: '1px 6px',
+                          textTransform: 'uppercase', letterSpacing: '0.4px',
+                        }}>Contributor</span>
+                      )}
+                    </div>
+                  </td>
                   <td style={{ ...tdStyle, color: 'rgba(255,255,255,0.55)', maxWidth: 320 }}>
                     <div style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{c.permbajtja}</div>
                   </td>

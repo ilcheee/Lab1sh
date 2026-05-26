@@ -6,24 +6,22 @@ function NavCTA({ user, onClose }) {
   const role = user?.role_id;
   if (!role) return null;
 
-  if (role <= 2) {
-    return (
-      <Link to="/admin" onClick={onClose} className="ubt-btn ubt-btn-outline" style={{ padding: '7px 18px', fontSize: 13 }}>
-        Admin Panel
-      </Link>
-    );
-  }
-  if (role <= 6) {
-    return (
-      <Link to="/blog/new" onClick={onClose} className="ubt-btn ubt-btn-secondary" style={{ padding: '7px 18px', fontSize: 13 }}>
-        Write
-      </Link>
-    );
-  }
   return (
-    <Link to="/profile" onClick={onClose} className="ubt-btn ubt-btn-outline" style={{ padding: '7px 18px', fontSize: 13 }}>
-      Profile
-    </Link>
+    <>
+      {role <= 2 && (
+        <Link to="/admin" onClick={onClose} className="ubt-btn ubt-btn-outline" style={{ padding: '7px 18px', fontSize: 13 }}>
+          Admin Panel
+        </Link>
+      )}
+      {role >= 3 && role <= 6 && (
+        <Link to="/blog/new" onClick={onClose} className="ubt-btn ubt-btn-secondary" style={{ padding: '7px 18px', fontSize: 13 }}>
+          Write
+        </Link>
+      )}
+      <Link to="/profile" onClick={onClose} className="ubt-btn ubt-btn-outline" style={{ padding: '7px 18px', fontSize: 13 }}>
+        Profile
+      </Link>
+    </>
   );
 }
 

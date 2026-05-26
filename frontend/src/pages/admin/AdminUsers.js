@@ -8,7 +8,7 @@ import { useAuth } from '../../context/AuthContext';
 const ALL_ROLES = [
   { id: 1, label: 'Super Admin', icon: '👑' },
   { id: 2, label: 'Admin',       icon: '⚙️' },
-  { id: 3, label: 'Moderator',   icon: '🛡️' },
+  { id: 3, label: 'Redaktor',    icon: '📋' },
   { id: 4, label: 'Editor',      icon: '📚' },
   { id: 5, label: 'Author',      icon: '✍️' },
   { id: 6, label: 'Contributor', icon: '📝' },

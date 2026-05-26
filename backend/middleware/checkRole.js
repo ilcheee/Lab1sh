@@ -1,41 +1,41 @@
 const PERMISSIONS = {
   super_admin: ['*'],
   admin: [
-    'posts.create', 'posts.edit_all', 'posts.delete_all', 'posts.publish',
+    'posts.create', 'posts.edit_all', 'posts.delete_all', 'posts.publish', 'posts.approve',
     'comments.manage_all', 'users.manage', 'users.change_role',
-    'categories.manage', 'settings.manage', 'media.manage',
+    'categories.manage', 'settings.manage', 'media.manage', 'media.upload',
     'newsletter.manage', 'dashboard.view',
   ],
-  moderator: [
-    'posts.read', 'comments.manage_all', 'users.view', 'users.warn',
+  redaktor: [
+    'posts.create', 'posts.edit_all', 'posts.delete_all', 'posts.publish', 'posts.approve',
+    'comments.manage_all',
     'dashboard.view',
   ],
   editor: [
-    'posts.create', 'posts.edit_all', 'posts.publish', 'posts.approve',
-    'comments.manage_all', 'categories.manage', 'media.manage',
+    'posts.create', 'posts.edit_all',
+    'categories.manage', 'media.manage', 'media.upload',
     'dashboard.view',
   ],
   author: [
-    'posts.create', 'posts.edit_own', 'posts.publish_own', 'posts.delete_own',
-    'comments.create', 'comments.edit_own', 'media.upload', 'profile.edit',
-  ],
-  contributor: [
     'posts.create', 'posts.edit_own', 'posts.delete_own',
     'comments.create', 'comments.edit_own', 'media.upload', 'profile.edit',
   ],
+  contributor: [
+    'posts.create', 'posts.edit_own',
+    'comments.create', 'comments.edit_own', 'media.upload', 'profile.edit',
+  ],
   member: [
-    'posts.read', 'comments.create', 'comments.edit_own',
-    'profile.edit', 'posts.like', 'posts.bookmark',
+    'posts.read', 'profile.edit',
   ],
   guest: [
-    'posts.read', 'comments.read',
+    'posts.read',
   ],
 };
 
 const ROLE_MAP = {
   1: 'super_admin',
   2: 'admin',
-  3: 'moderator',
+  3: 'redaktor',
   4: 'editor',
   5: 'author',
   6: 'contributor',

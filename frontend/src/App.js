@@ -32,10 +32,17 @@ import MediaList from './pages/media/MediaList';
 import SettingList from './pages/settings/SettingsList';
 import NewsletterList from './pages/newsletter/NewsletterList';
 
-// Any authenticated user
+// Any authenticated user (role 1–7)
 const AuthRoute = ({ children }) => {
   const { token } = useAuth();
   return token ? children : <Navigate to="/login" />;
+};
+
+// Logged-in users only for blog pages; guests → register with message
+const BlogRoute = ({ children }) => {
+  const { token } = useAuth();
+  if (!token) return <Navigate to="/register" state={{ message: 'Krijo llogari për të lexuar postimet' }} />;
+  return children;
 };
 
 // role_id 1–2 (super_admin, admin)
@@ -54,6 +61,14 @@ const EditorRoute = ({ children }) => {
   return children;
 };
 
+// role_id 1–3 (super_admin, admin, redaktor)
+const RedaktorRoute = ({ children }) => {
+  const { token, user } = useAuth();
+  if (!token) return <Navigate to="/login" />;
+  if (!user || user.role_id > 3) return <Navigate to="/profile" />;
+  return children;
+};
+
 // role_id 1–6 (anyone who can create content)
 const WriterRoute = ({ children }) => {
   const { token, user } = useAuth();
@@ -66,19 +81,19 @@ function AppRoutes() {
   return (
     <BrowserRouter>
       <Routes>
-        {/* ── Public ── */}
+        {/* ── Public (no login required) ── */}
         <Route path="/" element={<HomePage />} />
-        <Route path="/blog" element={<PostsFeed />} />
-        <Route path="/blog/new" element={<AuthRoute><UserPostForm /></AuthRoute>} />
-        <Route path="/blog/category/:slug" element={<CategoryPosts />} />
-        <Route path="/blog/:id" element={<SinglePost />} />
         <Route path="/about" element={<About />} />
-
-        {/* ── Auth ── */}
         <Route path="/login" element={<Login />} />
         <Route path="/register" element={<Register />} />
 
-        {/* ── Profile ── */}
+        {/* ── Blog (requires login) ── */}
+        <Route path="/blog" element={<BlogRoute><PostsFeed /></BlogRoute>} />
+        <Route path="/blog/new" element={<WriterRoute><UserPostForm /></WriterRoute>} />
+        <Route path="/blog/category/:slug" element={<BlogRoute><CategoryPosts /></BlogRoute>} />
+        <Route path="/blog/:id" element={<BlogRoute><SinglePost /></BlogRoute>} />
+
+        {/* ── Profile (any logged-in user, role 1–7) ── */}
         <Route path="/profile" element={<AuthRoute><UserProfile /></AuthRoute>} />
         <Route path="/profile/:id" element={<UserProfile />} />
 
@@ -88,6 +103,9 @@ function AppRoutes() {
         <Route path="/settings" element={<AdminRoute><SettingList /></AdminRoute>} />
         <Route path="/newsletter" element={<AdminRoute><NewsletterList /></AdminRoute>} />
 
+        {/* ── Redaktor+ (roles 1–3): can approve posts ── */}
+        <Route path="/comments" element={<RedaktorRoute><CommentList /></RedaktorRoute>} />
+
         {/* ── Editor+ (roles 1–4) ── */}
         <Route path="/categories" element={<EditorRoute><CategoryList /></EditorRoute>} />
         <Route path="/categories/new" element={<EditorRoute><CategoryForm /></EditorRoute>} />
@@ -95,7 +113,6 @@ function AppRoutes() {
         <Route path="/tags" element={<EditorRoute><TagList /></EditorRoute>} />
         <Route path="/tags/new" element={<EditorRoute><TagForm /></EditorRoute>} />
         <Route path="/tags/edit/:id" element={<EditorRoute><TagForm /></EditorRoute>} />
-        <Route path="/comments" element={<EditorRoute><CommentList /></EditorRoute>} />
         <Route path="/pages" element={<EditorRoute><PageList /></EditorRoute>} />
         <Route path="/pages/new" element={<EditorRoute><PageForm /></EditorRoute>} />
         <Route path="/pages/edit/:id" element={<EditorRoute><PageForm /></EditorRoute>} />

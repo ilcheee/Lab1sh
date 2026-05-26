@@ -6,7 +6,7 @@ const ALL_NAV_ITEMS = [
   { to: '/posts',        icon: '✎',  label: 'Posts',      minRole: 1, maxRole: 6  },
   { to: '/categories',   icon: '⊞',  label: 'Categories', minRole: 1, maxRole: 4  },
   { to: '/tags',         icon: '⊛',  label: 'Tags',       minRole: 1, maxRole: 4  },
-  { to: '/comments',     icon: '✉',  label: 'Comments',   minRole: 1, maxRole: 4  },
+  { to: '/comments',     icon: '✉',  label: 'Comments',   minRole: 1, maxRole: 3  },
   { to: '/pages',        icon: '☰',  label: 'Pages',      minRole: 1, maxRole: 4  },
   { to: '/media',        icon: '⊡',  label: 'Media',      minRole: 1, maxRole: 6  },
   { to: '/admin/users',  icon: '◎',  label: 'Users',      minRole: 1, maxRole: 2  },
@@ -15,7 +15,7 @@ const ALL_NAV_ITEMS = [
 ];
 
 const ROLE_LABEL = {
-  1: 'Super Admin', 2: 'Admin', 3: 'Moderator', 4: 'Editor',
+  1: 'Super Admin', 2: 'Admin', 3: 'Redaktor', 4: 'Editor',
   5: 'Author', 6: 'Contributor', 7: 'Member', 8: 'Guest',
 };
 

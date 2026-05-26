@@ -21,10 +21,11 @@ const checkCommentOwnership = (req, res, next) => {
 };
 
 // ─── GET COMMENTS ─────────────────────────────────────────
+// Returns author's role_id so frontend can style contributor comments
 router.get('/', (req, res) => {
   const { post_id } = req.query;
   let sql = `
-    SELECT c.*, u.emri AS autori
+    SELECT c.*, u.emri AS autori, u.role_id AS author_role_id
     FROM comments c
     LEFT JOIN users u ON c.user_id = u.id
   `;
@@ -39,7 +40,13 @@ router.get('/', (req, res) => {
 });
 
 // ─── CREATE ───────────────────────────────────────────────
-router.post('/', verifyToken, checkRole('comments.create'), (req, res) => {
+// Only role_id <= 6 (not members or guests)
+router.post('/', verifyToken, (req, res, next) => {
+  if (!req.user || req.user.role_id > 6) {
+    return res.status(403).json({ message: 'Nuk ke privilegje për të komentuar' });
+  }
+  next();
+}, checkRole('comments.create'), (req, res) => {
   const { post_id, permbajtja } = req.body;
   if (!post_id || !permbajtja)
     return res.status(400).json({ message: 'post_id dhe përmbajtja janë të detyrueshme' });
