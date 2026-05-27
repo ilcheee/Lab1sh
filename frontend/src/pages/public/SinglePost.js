@@ -233,6 +233,22 @@ export default function SinglePost() {
             {liked ? '♥' : '♡'} {likes > 0 ? likes : ''} {liked ? 'Liked' : 'Like'}
           </button>
 
+          <a href="#comments" style={{
+            display: 'flex', alignItems: 'center', gap: 6,
+            color: 'rgba(255,255,255,0.6)', fontSize: 14, textDecoration: 'none',
+            background: 'transparent', border: 'none', cursor: 'pointer',
+            fontFamily: "'Geist', sans-serif",
+            transition: 'color 0.15s',
+          }}
+            onMouseEnter={e => e.currentTarget.style.color = '#ffffff'}
+            onMouseLeave={e => e.currentTarget.style.color = 'rgba(255,255,255,0.6)'}
+          >
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
+            </svg>
+            <span>{comments.length > 0 ? `Comment (${comments.length})` : 'Comment'}</span>
+          </a>
+
           <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
             <span style={{ color: 'rgba(255,255,255,0.25)', fontSize: 12, textTransform: 'uppercase', letterSpacing: '0.5px' }}>Share</span>
             {[
@@ -259,7 +275,7 @@ export default function SinglePost() {
         </div>
 
         {/* ══ COMMENTS ══ */}
-        <div style={{ marginTop: 64, paddingBottom: 80 }}>
+        <div id="comments" style={{ marginTop: 64, paddingBottom: 80 }}>
           <h2 style={{ fontSize: 22, fontWeight: 700, color: '#fff', letterSpacing: '-0.3px', marginBottom: 32, display: 'flex', alignItems: 'center', gap: 12 }}>
             Comments
             <span style={{
@@ -320,16 +336,21 @@ export default function SinglePost() {
                 </div>
 
                 <textarea required rows={5} value={commentText} onChange={e => setCommentText(e.target.value)}
-                  placeholder="Share your thoughts…"
+                  placeholder="Write a comment..."
                   className="ubt-input"
                   style={{ resize: 'vertical', minHeight: 110, lineHeight: 1.7, fontSize: 14 }}
                 />
                 {submitErr && <p style={{ color: '#ff4444', fontSize: 13, marginTop: 8 }}>{submitErr}</p>}
 
-                <div style={{ marginTop: 14 }}>
+                <div style={{ marginTop: 14, display: 'flex', gap: 10, alignItems: 'center' }}>
                   <button type="submit" disabled={submitting} className="ubt-btn ubt-btn-primary" style={{ opacity: submitting ? 0.6 : 1 }}>
                     {submitting ? 'Posting…' : 'Post Comment'}
                   </button>
+                  {commentText && (
+                    <button type="button" onClick={() => setCommentText('')} className="ubt-btn ubt-btn-outline">
+                      Cancel
+                    </button>
+                  )}
                 </div>
               </form>
             )}
