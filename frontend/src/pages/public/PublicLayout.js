@@ -1,8 +1,11 @@
 import { useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
+import Modal from '../../components/Modal';
 
-function NavCTA({ user, onClose }) {
+const ROLE_NAMES = { 7: 'Member', 8: 'Guest' };
+
+function NavCTA({ user, onClose, onWriteClick }) {
   const role = user?.role_id;
   if (!role) return null;
 
@@ -18,6 +21,15 @@ function NavCTA({ user, onClose }) {
           Write
         </Link>
       )}
+      {role >= 7 && (
+        <button
+          onClick={() => { onClose?.(); onWriteClick(); }}
+          className="ubt-btn ubt-btn-secondary"
+          style={{ padding: '7px 18px', fontSize: 13 }}
+        >
+          Write
+        </button>
+      )}
       <Link to="/profile" onClick={onClose} className="ubt-btn ubt-btn-outline" style={{ padding: '7px 18px', fontSize: 13 }}>
         Profile
       </Link>
@@ -27,6 +39,7 @@ function NavCTA({ user, onClose }) {
 
 export default function PublicLayout({ children }) {
   const [menuOpen, setMenuOpen] = useState(false);
+  const [writeModal, setWriteModal] = useState(null); // null | 'no_permission' | 'not_logged_in'
   const { pathname } = useLocation();
   const { user, logout } = useAuth();
   const navigate = useNavigate();
@@ -34,6 +47,24 @@ export default function PublicLayout({ children }) {
   const handleLogout = () => {
     logout();
     navigate('/');
+  };
+
+  const handleWriteClick = () => {
+    if (!user) {
+      setWriteModal('not_logged_in');
+    } else {
+      setWriteModal('no_permission');
+    }
+  };
+
+  const handleFooterWrite = () => {
+    if (!user) {
+      setWriteModal('not_logged_in');
+    } else if (user.role_id >= 7) {
+      setWriteModal('no_permission');
+    } else {
+      navigate('/blog/new');
+    }
   };
 
   const navLink = (to, label) => (
@@ -76,7 +107,7 @@ export default function PublicLayout({ children }) {
           <div style={{ display: 'flex', alignItems: 'center', gap: 10 }} className="desktop-auth">
             {user ? (
               <>
-                <NavCTA user={user} />
+                <NavCTA user={user} onWriteClick={handleWriteClick} />
                 <button onClick={handleLogout} className="ubt-btn ubt-btn-primary" style={{ padding: '7px 18px', fontSize: 13 }}>
                   Log Out
                 </button>
@@ -109,7 +140,7 @@ export default function PublicLayout({ children }) {
               <div style={{ display: 'flex', gap: 10, marginTop: 8, flexWrap: 'wrap' }}>
                 {user ? (
                   <>
-                    <NavCTA user={user} onClose={() => setMenuOpen(false)} />
+                    <NavCTA user={user} onClose={() => setMenuOpen(false)} onWriteClick={handleWriteClick} />
                     <button onClick={() => { handleLogout(); setMenuOpen(false); }} className="ubt-btn ubt-btn-primary" style={{ fontSize: 13 }}>Log Out</button>
                   </>
                 ) : (
@@ -141,12 +172,18 @@ export default function PublicLayout({ children }) {
             <div style={{ display: 'flex', gap: 60, flexWrap: 'wrap' }}>
               <div>
                 <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.3)', textTransform: 'uppercase', letterSpacing: '0.8px', marginBottom: 14, fontWeight: 600 }}>Platform</div>
-                {[{ to: '/', l: 'Home' }, { to: '/blog', l: 'Blog' }, { to: '/blog/new', l: 'Write' }, { to: '/register', l: 'Sign Up' }].map(({ to, l }) => (
+                {[{ to: '/', l: 'Home' }, { to: '/blog', l: 'Blog' }, { to: '/register', l: 'Sign Up' }].map(({ to, l }) => (
                   <Link key={to} to={to} style={{ display: 'block', color: 'rgba(255,255,255,0.45)', fontSize: 14, marginBottom: 9, textDecoration: 'none', transition: 'color 0.15s' }}
                     onMouseEnter={e => e.currentTarget.style.color = '#fff'}
                     onMouseLeave={e => e.currentTarget.style.color = 'rgba(255,255,255,0.45)'}
                   >{l}</Link>
                 ))}
+                <button
+                  onClick={handleFooterWrite}
+                  style={{ display: 'block', color: 'rgba(255,255,255,0.45)', fontSize: 14, marginBottom: 9, textDecoration: 'none', transition: 'color 0.15s', background: 'none', border: 'none', cursor: 'pointer', padding: 0, fontFamily: "'Geist', system-ui, sans-serif" }}
+                  onMouseEnter={e => e.currentTarget.style.color = '#fff'}
+                  onMouseLeave={e => e.currentTarget.style.color = 'rgba(255,255,255,0.45)'}
+                >Write</button>
               </div>
             </div>
           </div>
@@ -163,6 +200,28 @@ export default function PublicLayout({ children }) {
           </div>
         </div>
       </footer>
+
+      <Modal
+        isOpen={writeModal === 'no_permission'}
+        title="Insufficient privileges"
+        message={`Your current role (${ROLE_NAMES[user?.role_id] ?? 'Member'}) does not allow creating posts. Contact an administrator to request the Author role.`}
+        onConfirm={() => setWriteModal(null)}
+        confirmLabel="Got it"
+        onCancel={() => setWriteModal(null)}
+        hideCancelButton
+        borderAccent="#e53e3e"
+      />
+
+      <Modal
+        isOpen={writeModal === 'not_logged_in'}
+        title="Login required"
+        message="You need to log in to create posts."
+        onConfirm={() => { navigate('/login'); setWriteModal(null); }}
+        confirmLabel="Log In"
+        onCancel={() => setWriteModal(null)}
+        cancelLabel="Cancel"
+        borderAccent="#e53e3e"
+      />
 
       <style>{`
         @media (max-width: 680px) {

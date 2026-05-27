@@ -9,6 +9,8 @@ export default function Modal({
   confirmLabel = 'Confirm',
   cancelLabel = 'Cancel',
   isDelete = false,
+  hideCancelButton = false,
+  borderAccent,
 }) {
   useEffect(() => {
     if (!isOpen) return;
@@ -47,7 +49,7 @@ export default function Modal({
           onClick={e => e.stopPropagation()}
           style={{
             background: '#111111',
-            border: '1px solid rgba(255,255,255,0.1)',
+            border: borderAccent ? `1px solid ${borderAccent}` : '1px solid rgba(255,255,255,0.1)',
             borderRadius: 12,
             padding: '28px 28px 24px',
             maxWidth: 420,
@@ -62,7 +64,7 @@ export default function Modal({
             {message}
           </p>
           <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end' }}>
-            {onCancel && (
+            {!hideCancelButton && onCancel && (
               <button
                 onClick={onCancel}
                 style={{

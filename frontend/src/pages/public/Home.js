@@ -1,8 +1,9 @@
 import { useState, useEffect, useRef } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import API from '../../api/axios';
 import PublicLayout from './PublicLayout';
 import { useAuth } from '../../context/AuthContext';
+import Modal from '../../components/Modal';
 
 const fmtDate = (d) =>
   d ? new Date(d).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : '';
@@ -193,12 +194,21 @@ function Skeleton() {
 // ── Main component ───────────────────────────────────────────
 export default function Home() {
   const { user } = useAuth();
+  const navigate = useNavigate();
   const [posts, setPosts] = useState([]);
   const [stats, setStats] = useState(null);
   const [loading, setLoading] = useState(true);
   const [email, setEmail] = useState('');
   const [subState, setSubState] = useState('idle');
   const [heroVisible, setHeroVisible] = useState(false);
+  const [writeModal, setWriteModal] = useState(null); // null | 'no_permission'
+
+  const handleHeroWrite = (e) => {
+    if (user?.role_id >= 7) {
+      e.preventDefault();
+      setWriteModal('no_permission');
+    }
+  };
 
   useEffect(() => {
     // Trigger hero fade-in
@@ -257,7 +267,7 @@ export default function Home() {
               Start Reading
             </Link>
             {user ? (
-              <Link to="/blog/new" className="ubt-btn ubt-btn-secondary" style={{ padding: '11px 28px', fontSize: 15 }}>
+              <Link to="/blog/new" onClick={handleHeroWrite} className="ubt-btn ubt-btn-secondary" style={{ padding: '11px 28px', fontSize: 15 }}>
                 Write a Post
               </Link>
             ) : (
@@ -335,6 +345,16 @@ export default function Home() {
           </div>
         </div>
       </section>
+      <Modal
+        isOpen={writeModal === 'no_permission'}
+        title="Insufficient privileges"
+        message={`Your current role (${user?.role_id === 8 ? 'Guest' : 'Member'}) does not allow creating posts. Contact an administrator to request the Author role.`}
+        onConfirm={() => setWriteModal(null)}
+        confirmLabel="Got it"
+        onCancel={() => setWriteModal(null)}
+        hideCancelButton
+        borderAccent="#e53e3e"
+      />
     </PublicLayout>
   );
 }
