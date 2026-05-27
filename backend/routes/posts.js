@@ -202,17 +202,66 @@ function performDelete(postId, res) {
   });
 }
 
-// ─── LIKE POST (public) ───────────────────────────────────
-router.post('/:id/like', (req, res) => {
+// ─── TOGGLE LIKE ─────────────────────────────────────────
+// Requires: CREATE TABLE IF NOT EXISTS post_likes (
+//   id INT AUTO_INCREMENT PRIMARY KEY,
+//   post_id INT NOT NULL, user_id INT NOT NULL,
+//   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+//   UNIQUE KEY unique_like (post_id, user_id),
+//   FOREIGN KEY (post_id) REFERENCES posts(id) ON DELETE CASCADE,
+//   FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+// );
+router.post('/:id/toggle-like', verifyToken, (req, res) => {
+  const post_id = req.params.id;
+  const user_id = req.user.id;
+
   db.query(
-    'UPDATE posts SET likes = COALESCE(likes, 0) + 1 WHERE id = ?',
-    [req.params.id],
-    (err, result) => {
-      if (err) return res.status(500).json({ message: 'Server error', error: err });
-      if (!result.affectedRows) return res.status(404).json({ message: 'Post not found' });
-      db.query('SELECT likes FROM posts WHERE id = ?', [req.params.id], (err2, rows) => {
-        res.json({ likes: rows?.[0]?.likes || 0 });
-      });
+    'SELECT id FROM post_likes WHERE post_id = ? AND user_id = ?',
+    [post_id, user_id],
+    (err, results) => {
+      if (err) return res.status(500).json({ message: 'Error' });
+
+      if (results.length > 0) {
+        // Already liked → unlike
+        db.query(
+          'DELETE FROM post_likes WHERE post_id = ? AND user_id = ?',
+          [post_id, user_id],
+          (err2) => {
+            if (err2) return res.status(500).json({ message: 'Error' });
+            db.query(
+              'UPDATE posts SET likes = (SELECT COUNT(*) FROM post_likes WHERE post_id = ?) WHERE id = ?',
+              [post_id, post_id],
+              () => res.json({ liked: false })
+            );
+          }
+        );
+      } else {
+        // Not liked → like
+        db.query(
+          'INSERT INTO post_likes (post_id, user_id) VALUES (?, ?)',
+          [post_id, user_id],
+          (err2) => {
+            if (err2) return res.status(500).json({ message: 'Error' });
+            db.query(
+              'UPDATE posts SET likes = (SELECT COUNT(*) FROM post_likes WHERE post_id = ?) WHERE id = ?',
+              [post_id, post_id],
+              () => res.json({ liked: true })
+            );
+          }
+        );
+      }
+    }
+  );
+});
+
+// ─── LIKE STATUS ──────────────────────────────────────────
+router.get('/:id/like-status', verifyToken, (req, res) => {
+  db.query(
+    'SELECT id FROM post_likes WHERE post_id = ? AND user_id = ?',
+    [req.params.id, req.user.id],
+    (err, results) => {
+      if (err) return res.status(500).json({ message: 'Error' });
+      res.json({ liked: results.length > 0 });
     }
   );
 });

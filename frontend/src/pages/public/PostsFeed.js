@@ -10,29 +10,32 @@ const fmtDate = (d) =>
 const stripHtml = (html = '') => html.replace(/<[^>]*>/g, '').trim();
 
 function FeedCard({ post }) {
+  const { user } = useAuth();
   const initials = (post.autori || 'A').slice(0, 2).toUpperCase();
   const excerpt = stripHtml(post.permbajtja || '');
-  const [liked, setLiked] = useState(() => localStorage.getItem(`liked_post_${post.id}`) === 'true');
+  const [liked, setLiked] = useState(false);
   const [likes, setLikes] = useState(post.likes || 0);
   const [copied, setCopied] = useState(false);
 
+  useEffect(() => {
+    if (user && post.id) {
+      API.get(`/posts/${post.id}/like-status`)
+        .then(res => setLiked(res.data.liked))
+        .catch(() => {});
+    }
+  }, [post.id, user]);
+
   const handleLike = async (e) => {
     e.preventDefault();
-    const nowLiked = !liked;
-    setLiked(nowLiked);
-    setLikes(l => nowLiked ? l + 1 : Math.max(0, l - 1));
-    if (nowLiked) localStorage.setItem(`liked_post_${post.id}`, 'true');
-    else localStorage.removeItem(`liked_post_${post.id}`);
+    if (!user) return;
+    const newLikedState = !liked;
+    setLiked(newLikedState);
+    setLikes(prev => newLikedState ? prev + 1 : prev - 1);
     try {
-      const res = nowLiked
-        ? await API.post(`/posts/${post.id}/like`)
-        : await API.delete(`/posts/${post.id}/like`);
-      if (res.data?.likes !== undefined) setLikes(res.data.likes);
+      await API.post(`/posts/${post.id}/toggle-like`);
     } catch {
-      setLiked(!nowLiked);
-      setLikes(l => nowLiked ? Math.max(0, l - 1) : l + 1);
-      if (!nowLiked) localStorage.setItem(`liked_post_${post.id}`, 'true');
-      else localStorage.removeItem(`liked_post_${post.id}`);
+      setLiked(!newLikedState);
+      setLikes(prev => newLikedState ? prev - 1 : prev + 1);
     }
   };
 

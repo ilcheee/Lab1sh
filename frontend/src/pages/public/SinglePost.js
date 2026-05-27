@@ -108,10 +108,10 @@ export default function SinglePost() {
   const [error, setError] = useState(null);
   const [commentText, setCommentText] = useState('');
   const [submitting, setSubmitting] = useState(false);
-  const [submitDone, setSubmitDone] = useState(false);
+  const [successMsg, setSuccessMsg] = useState('');
   const [submitErr, setSubmitErr] = useState('');
   const [likes, setLikes] = useState(0);
-  const [liked, setLiked] = useState(() => localStorage.getItem(`liked_post_${id}`) === 'true');
+  const [liked, setLiked] = useState(false);
   const [deleteModal, setDeleteModal] = useState({ open: false, commentId: null });
 
   useEffect(() => {
@@ -126,13 +126,23 @@ export default function SinglePost() {
       .catch(() => { setError('Post not found.'); setLoading(false); });
   }, [id]);
 
+  useEffect(() => {
+    if (user && id) {
+      API.get(`/posts/${id}/like-status`)
+        .then(res => setLiked(res.data.liked))
+        .catch(() => {});
+    }
+  }, [id, user]);
+
   const handleComment = async (e) => {
     e.preventDefault();
     if (!commentText.trim()) return;
     setSubmitting(true); setSubmitErr('');
     try {
       await API.post('/comments', { post_id: post.id, permbajtja: commentText });
-      setCommentText(''); setSubmitDone(true);
+      setCommentText('');
+      setSuccessMsg('Comment posted successfully!');
+      setTimeout(() => setSuccessMsg(''), 3000);
       const res = await API.get(`/comments?post_id=${post.id}`).catch(() => ({ data: [] }));
       setComments(Array.isArray(res.data) ? res.data : []);
     } catch (err) {
@@ -141,21 +151,15 @@ export default function SinglePost() {
   };
 
   const handleLike = async () => {
-    const nowLiked = !liked;
-    setLiked(nowLiked);
-    setLikes(l => nowLiked ? l + 1 : Math.max(0, l - 1));
-    if (nowLiked) localStorage.setItem(`liked_post_${id}`, 'true');
-    else localStorage.removeItem(`liked_post_${id}`);
+    if (!user) return;
+    const newLikedState = !liked;
+    setLiked(newLikedState);
+    setLikes(prev => newLikedState ? prev + 1 : prev - 1);
     try {
-      const res = nowLiked
-        ? await API.post(`/posts/${post.id}/like`)
-        : await API.delete(`/posts/${post.id}/like`);
-      if (res.data?.likes !== undefined) setLikes(res.data.likes);
+      await API.post(`/posts/${post.id}/toggle-like`);
     } catch {
-      setLiked(!nowLiked);
-      setLikes(l => nowLiked ? Math.max(0, l - 1) : l + 1);
-      if (!nowLiked) localStorage.setItem(`liked_post_${id}`, 'true');
-      else localStorage.removeItem(`liked_post_${id}`);
+      setLiked(!newLikedState);
+      setLikes(prev => newLikedState ? prev - 1 : prev + 1);
     }
   };
 
@@ -387,15 +391,17 @@ export default function SinglePost() {
                   <Link to="/register" className="ubt-btn ubt-btn-primary">Sign Up</Link>
                 </div>
               </div>
-            ) : submitDone ? (
-              <div style={{
-                background: 'rgba(34,197,94,0.08)',
-                border: '1px solid rgba(34,197,94,0.2)',
-                borderRadius: 8, padding: '14px 18px',
-                color: '#22c55e', fontSize: 14, fontWeight: 500,
-              }}>✓ Comment posted successfully!</div>
             ) : (
               <form onSubmit={handleComment}>
+                {successMsg && (
+                  <div style={{
+                    background: 'rgba(34,197,94,0.08)',
+                    border: '1px solid rgba(34,197,94,0.2)',
+                    borderRadius: 8, padding: '12px 16px', marginBottom: 16,
+                    color: '#22c55e', fontSize: 14, fontWeight: 500,
+                  }}>✓ {successMsg}</div>
+                )}
+
                 <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 14px', background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.07)', borderRadius: 8, marginBottom: 14 }}>
                   <div style={{ width: 26, height: 26, borderRadius: '50%', background: 'rgba(255,255,255,0.08)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 11, fontWeight: 600, color: 'rgba(255,255,255,0.6)', flexShrink: 0 }}>
                     {(user.emri || 'U').slice(0, 2).toUpperCase()}

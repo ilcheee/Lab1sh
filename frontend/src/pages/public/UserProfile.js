@@ -3,6 +3,7 @@ import { useParams, Link, useNavigate } from 'react-router-dom';
 import API from '../../api/axios';
 import PublicLayout from './PublicLayout';
 import { useAuth } from '../../context/AuthContext';
+import Modal from '../../components/Modal';
 
 const fmtDate = (d) =>
   d ? new Date(d).toLocaleDateString('en-US', { month: 'long', year: 'numeric' }) : '';
@@ -33,6 +34,7 @@ export default function UserProfile() {
   const [profileForm, setProfileForm] = useState({ emri: '', email: '' });
   const [saving, setSaving] = useState(false);
   const [saveMsg, setSaveMsg] = useState('');
+  const [writeModal, setWriteModal] = useState(false);
 
   useEffect(() => {
     if (!userId) { navigate('/login'); return; }
@@ -157,7 +159,11 @@ export default function UserProfile() {
                 No published posts yet.
                 {isOwn && (
                   <div style={{ marginTop: 14 }}>
-                    <Link to="/blog/new" className="ubt-btn ubt-btn-primary" style={{ fontSize: 13 }}>Write your first post</Link>
+                    {authUser?.role_id <= 6 ? (
+                      <Link to="/blog/new" className="ubt-btn ubt-btn-primary" style={{ fontSize: 13 }}>Write your first post</Link>
+                    ) : (
+                      <button onClick={() => setWriteModal(true)} className="ubt-btn ubt-btn-primary" style={{ fontSize: 13 }}>Write your first post</button>
+                    )}
                   </div>
                 )}
               </div>
@@ -221,6 +227,16 @@ export default function UserProfile() {
           </div>
         )}
       </div>
+      <Modal
+        isOpen={writeModal}
+        title="Insufficient privileges"
+        message={`Your current role (${authUser?.role_id === 8 ? 'Guest' : 'Member'}) does not allow creating posts. Contact an administrator to request the Author role.`}
+        onConfirm={() => setWriteModal(false)}
+        confirmLabel="Got it"
+        onCancel={() => setWriteModal(false)}
+        hideCancelButton
+        borderAccent="#e53e3e"
+      />
     </PublicLayout>
   );
 }
