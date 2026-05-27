@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import API from '../../api/axios';
 import PublicLayout from './PublicLayout';
+import { useAuth } from '../../context/AuthContext';
 
 const fmtDate = (d) =>
   d ? new Date(d).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) : '';
@@ -11,20 +12,28 @@ const stripHtml = (html = '') => html.replace(/<[^>]*>/g, '').trim();
 function FeedCard({ post }) {
   const initials = (post.autori || 'A').slice(0, 2).toUpperCase();
   const excerpt = stripHtml(post.permbajtja || '');
-  const [liked, setLiked] = useState(false);
+  const [liked, setLiked] = useState(() => localStorage.getItem(`liked_post_${post.id}`) === 'true');
   const [likes, setLikes] = useState(post.likes || 0);
   const [copied, setCopied] = useState(false);
 
   const handleLike = async (e) => {
     e.preventDefault();
-    if (liked) return;
+    const nowLiked = !liked;
+    setLiked(nowLiked);
+    setLikes(l => nowLiked ? l + 1 : Math.max(0, l - 1));
+    if (nowLiked) localStorage.setItem(`liked_post_${post.id}`, 'true');
+    else localStorage.removeItem(`liked_post_${post.id}`);
     try {
-      const res = await API.post(`/posts/${post.id}/like`);
-      setLikes(res.data.likes ?? likes + 1);
+      const res = nowLiked
+        ? await API.post(`/posts/${post.id}/like`)
+        : await API.delete(`/posts/${post.id}/like`);
+      if (res.data?.likes !== undefined) setLikes(res.data.likes);
     } catch {
-      setLikes(l => l + 1);
+      setLiked(!nowLiked);
+      setLikes(l => nowLiked ? Math.max(0, l - 1) : l + 1);
+      if (!nowLiked) localStorage.setItem(`liked_post_${post.id}`, 'true');
+      else localStorage.removeItem(`liked_post_${post.id}`);
     }
-    setLiked(true);
   };
 
   const handleShare = (e) => {
@@ -98,17 +107,25 @@ function FeedCard({ post }) {
 
       {/* Action bar */}
       <div style={{ display: 'flex', gap: 24, paddingTop: 12, borderTop: '1px solid rgba(255,255,255,0.05)' }}>
-        <button onClick={handleLike} disabled={liked} style={{
+        <button onClick={handleLike} style={{
           display: 'flex', alignItems: 'center', gap: 6,
-          background: 'transparent', border: 'none', cursor: liked ? 'default' : 'pointer',
-          color: liked ? '#f87171' : 'rgba(255,255,255,0.35)',
-          fontSize: 13, fontFamily: "'Geist', sans-serif", padding: 0,
+          background: 'transparent', border: 'none', cursor: 'pointer', padding: 0,
+          color: liked ? '#ff4444' : 'rgba(255,255,255,0.5)',
+          fontSize: 13, fontFamily: "'Geist', sans-serif",
           transition: 'color 0.15s',
         }}
-          onMouseEnter={e => { if (!liked) e.currentTarget.style.color = '#f87171'; }}
-          onMouseLeave={e => { if (!liked) e.currentTarget.style.color = 'rgba(255,255,255,0.35)'; }}
+          onMouseEnter={e => { if (!liked) e.currentTarget.style.color = '#ffffff'; }}
+          onMouseLeave={e => { if (!liked) e.currentTarget.style.color = 'rgba(255,255,255,0.5)'; }}
         >
-          <span style={{ fontSize: 16 }}>{liked ? '♥' : '♡'}</span>
+          {liked ? (
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="#ff4444" stroke="#ff4444" strokeWidth="2">
+              <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/>
+            </svg>
+          ) : (
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/>
+            </svg>
+          )}
           {likes > 0 && <span>{likes}</span>}
         </button>
 

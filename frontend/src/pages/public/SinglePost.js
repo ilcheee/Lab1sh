@@ -3,6 +3,7 @@ import { useParams, Link } from 'react-router-dom';
 import API from '../../api/axios';
 import PublicLayout from './PublicLayout';
 import { useAuth } from '../../context/AuthContext';
+import Modal from '../../components/Modal';
 
 const fmtDate = (d) =>
   d ? new Date(d).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' }) : '';
@@ -15,20 +16,38 @@ const GRID_BG = {
   backgroundSize: '50px 50px',
 };
 
-function CommentItem({ comment }) {
+const TrashIcon = () => (
+  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+    <polyline points="3 6 5 6 21 6"/>
+    <path d="M19 6l-1 14H6L5 6"/>
+    <path d="M10 11v6M14 11v6"/>
+    <path d="M9 6V4h6v2"/>
+  </svg>
+);
+
+function CommentItem({ comment, user, onDeleteRequest }) {
+  const [hovered, setHovered] = useState(false);
+  const [trashHovered, setTrashHovered] = useState(false);
   const initials = (comment.autori || 'A').slice(0, 2).toUpperCase();
   const isContributor = comment.author_role_id === 6;
+  const canDelete = user && (user.id === comment.user_id || user.role_id <= 3);
+
   return (
-    <div style={{
-      display: 'flex', gap: 14, padding: '20px 0',
-      borderBottom: '1px solid rgba(255,255,255,0.07)',
-      ...(isContributor && {
-        background: 'rgba(135,206,235,0.12)',
-        borderLeft: '3px solid #87CEEB',
-        borderRadius: '0 8px 8px 0',
-        paddingLeft: 16,
-      }),
-    }}>
+    <div
+      onMouseEnter={() => setHovered(true)}
+      onMouseLeave={() => setHovered(false)}
+      style={{
+        display: 'flex', gap: 14, padding: '20px 0',
+        borderBottom: '1px solid rgba(255,255,255,0.07)',
+        position: 'relative',
+        ...(isContributor && {
+          background: 'rgba(135,206,235,0.12)',
+          borderLeft: '3px solid #87CEEB',
+          borderRadius: '0 8px 8px 0',
+          paddingLeft: 16,
+        }),
+      }}
+    >
       <div style={{
         width: 36, height: 36, borderRadius: '50%',
         background: isContributor ? 'rgba(135,206,235,0.2)' : 'rgba(255,255,255,0.08)',
@@ -55,6 +74,21 @@ function CommentItem({ comment }) {
         </div>
         <p style={{ color: 'rgba(255,255,255,0.55)', fontSize: 15, lineHeight: 1.7, margin: 0 }}>{comment.permbajtja}</p>
       </div>
+      {canDelete && (
+        <button
+          onClick={() => onDeleteRequest(comment.id)}
+          onMouseEnter={() => setTrashHovered(true)}
+          onMouseLeave={() => setTrashHovered(false)}
+          style={{
+            position: 'absolute', right: 0, top: 20,
+            background: 'none', border: 'none', cursor: 'pointer', padding: 4,
+            color: trashHovered ? '#ff4444' : hovered ? 'rgba(255,68,68,0.6)' : 'transparent',
+            transition: 'color 0.15s',
+          }}
+        >
+          <TrashIcon />
+        </button>
+      )}
     </div>
   );
 }
@@ -77,7 +111,8 @@ export default function SinglePost() {
   const [submitDone, setSubmitDone] = useState(false);
   const [submitErr, setSubmitErr] = useState('');
   const [likes, setLikes] = useState(0);
-  const [liked, setLiked] = useState(false);
+  const [liked, setLiked] = useState(() => localStorage.getItem(`liked_post_${id}`) === 'true');
+  const [deleteModal, setDeleteModal] = useState({ open: false, commentId: null });
 
   useEffect(() => {
     setLoading(true); setError(null);
@@ -106,12 +141,31 @@ export default function SinglePost() {
   };
 
   const handleLike = async () => {
-    if (liked) return;
+    const nowLiked = !liked;
+    setLiked(nowLiked);
+    setLikes(l => nowLiked ? l + 1 : Math.max(0, l - 1));
+    if (nowLiked) localStorage.setItem(`liked_post_${id}`, 'true');
+    else localStorage.removeItem(`liked_post_${id}`);
     try {
-      const res = await API.post(`/posts/${post.id}/like`);
-      setLikes(res.data.likes ?? likes + 1);
-    } catch { setLikes(l => l + 1); }
-    setLiked(true);
+      const res = nowLiked
+        ? await API.post(`/posts/${post.id}/like`)
+        : await API.delete(`/posts/${post.id}/like`);
+      if (res.data?.likes !== undefined) setLikes(res.data.likes);
+    } catch {
+      setLiked(!nowLiked);
+      setLikes(l => nowLiked ? Math.max(0, l - 1) : l + 1);
+      if (!nowLiked) localStorage.setItem(`liked_post_${id}`, 'true');
+      else localStorage.removeItem(`liked_post_${id}`);
+    }
+  };
+
+  const handleDeleteComment = async () => {
+    const { commentId } = deleteModal;
+    setDeleteModal({ open: false, commentId: null });
+    try {
+      await API.delete(`/comments/${commentId}`);
+      setComments(prev => prev.filter(c => c.id !== commentId));
+    } catch { /* silently fail */ }
   };
 
   if (loading) return (
@@ -220,17 +274,26 @@ export default function SinglePost() {
           borderTop: '1px solid rgba(255,255,255,0.07)',
           display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 14,
         }}>
-          <button onClick={handleLike} disabled={liked} style={{
-            display: 'flex', alignItems: 'center', gap: 8,
-            padding: '8px 18px', borderRadius: 25,
-            border: `1px solid ${liked ? 'rgba(255,255,255,0.25)' : 'rgba(255,255,255,0.1)'}`,
-            background: liked ? 'rgba(255,255,255,0.06)' : 'transparent',
-            color: liked ? '#fff' : 'rgba(255,255,255,0.5)',
-            fontSize: 14, fontWeight: 500, cursor: liked ? 'default' : 'pointer',
-            fontFamily: "'Geist', sans-serif",
-            transition: 'all 0.15s',
-          }}>
-            {liked ? '♥' : '♡'} {likes > 0 ? likes : ''} {liked ? 'Liked' : 'Like'}
+          <button onClick={handleLike} style={{
+            display: 'flex', alignItems: 'center', gap: 6,
+            background: 'transparent', border: 'none', cursor: 'pointer', padding: 0,
+            color: liked ? '#ff4444' : 'rgba(255,255,255,0.5)',
+            fontSize: 13, fontFamily: "'Geist', sans-serif",
+            transition: 'color 0.15s',
+          }}
+            onMouseEnter={e => { if (!liked) e.currentTarget.style.color = '#ffffff'; }}
+            onMouseLeave={e => { if (!liked) e.currentTarget.style.color = 'rgba(255,255,255,0.5)'; }}
+          >
+            {liked ? (
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="#ff4444" stroke="#ff4444" strokeWidth="2">
+                <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/>
+              </svg>
+            ) : (
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/>
+              </svg>
+            )}
+            {likes > 0 && <span>{likes}</span>}
           </button>
 
           <a href="#comments" style={{
@@ -301,7 +364,14 @@ export default function SinglePost() {
             }}>No comments yet. Be the first.</div>
           ) : (
             <div style={{ marginBottom: 40 }}>
-              {comments.map((c, i) => <CommentItem key={c.id || i} comment={c} />)}
+              {comments.map((c, i) => (
+                <CommentItem
+                  key={c.id || i}
+                  comment={c}
+                  user={user}
+                  onDeleteRequest={(commentId) => setDeleteModal({ open: true, commentId })}
+                />
+              ))}
             </div>
           )}
 
@@ -364,6 +434,17 @@ export default function SinglePost() {
           </div>
         </div>
       </div>
+
+      <Modal
+        isOpen={deleteModal.open}
+        title="Delete comment"
+        message="Are you sure you want to delete this comment?"
+        onConfirm={handleDeleteComment}
+        onCancel={() => setDeleteModal({ open: false, commentId: null })}
+        confirmLabel="Delete"
+        cancelLabel="Cancel"
+        isDelete
+      />
     </PublicLayout>
   );
 }
