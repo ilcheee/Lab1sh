@@ -27,7 +27,7 @@ export default function Toast({ message, type = 'success', onClose }) {
             position: 'fixed', bottom: 24, right: 24, zIndex: 10000,
             background: '#111111',
             border: `1px solid ${borderColor}`,
-            borderRadius: 10,
+            borderRadius: 16,
             padding: '12px 14px',
             display: 'flex', alignItems: 'center', gap: 10,
             minWidth: 220, maxWidth: 360,

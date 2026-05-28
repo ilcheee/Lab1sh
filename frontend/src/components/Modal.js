@@ -47,7 +47,7 @@ export default function Modal({
             style={{
               background: '#111111',
               border: borderAccent ? `1px solid ${borderAccent}` : '1px solid rgba(255,255,255,0.1)',
-              borderRadius: 12,
+              borderRadius: 20,
               padding: '28px 28px 24px',
               maxWidth: 420,
               width: '90%',
@@ -64,7 +64,7 @@ export default function Modal({
                 <button
                   onClick={onCancel}
                   style={{
-                    padding: '8px 18px', borderRadius: 8, fontSize: 13, cursor: 'pointer',
+                    padding: '8px 18px', borderRadius: 25, fontSize: 13, cursor: 'pointer',
                     background: 'rgba(255,255,255,0.06)',
                     color: 'rgba(255,255,255,0.6)',
                     border: '1px solid rgba(255,255,255,0.1)',
@@ -80,7 +80,7 @@ export default function Modal({
               <button
                 onClick={onConfirm}
                 style={{
-                  padding: '8px 18px', borderRadius: 8, fontSize: 13, cursor: 'pointer',
+                  padding: '8px 18px', borderRadius: 25, fontSize: 13, cursor: 'pointer',
                   background: isDelete ? '#ff4444' : '#fff',
                   color: isDelete ? '#fff' : '#000',
                   border: 'none',

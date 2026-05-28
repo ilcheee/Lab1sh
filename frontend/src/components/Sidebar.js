@@ -94,7 +94,7 @@ export default function Sidebar() {
                   style={{
                     position: 'absolute', inset: 0,
                     background: 'rgba(255,255,255,0.08)',
-                    borderRadius: 6,
+                    borderRadius: 10,
                   }}
                   transition={{ type: 'spring', stiffness: 380, damping: 30 }}
                 />
@@ -103,7 +103,7 @@ export default function Sidebar() {
                 to={item.to}
                 style={{
                   display: 'flex', alignItems: 'center', gap: 10,
-                  padding: '8px 12px', borderRadius: 6,
+                  padding: '8px 12px', borderRadius: 10,
                   textDecoration: 'none', position: 'relative', zIndex: 1,
                   background: 'transparent',
                   color: active ? '#fff' : 'rgba(255,255,255,0.45)',
@@ -126,7 +126,7 @@ export default function Sidebar() {
         <motion.div variants={itemVariants}>
           <Link
             to="/blog"
-            style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '8px 12px', borderRadius: 6, textDecoration: 'none', color: 'rgba(255,255,255,0.4)', fontSize: 14, transition: 'all 0.12s' }}
+            style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '8px 12px', borderRadius: 10, textDecoration: 'none', color: 'rgba(255,255,255,0.4)', fontSize: 14, transition: 'all 0.12s' }}
             onMouseEnter={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.05)'; e.currentTarget.style.color = 'rgba(255,255,255,0.8)'; }}
             onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = 'rgba(255,255,255,0.4)'; }}
           >
@@ -143,7 +143,7 @@ export default function Sidebar() {
           style={{
             width: '100%', padding: '8px 12px',
             background: 'transparent', border: '1px solid rgba(255,255,255,0.08)',
-            borderRadius: 6, cursor: 'pointer',
+            borderRadius: 10, cursor: 'pointer',
             color: 'rgba(255,255,255,0.4)', fontSize: 14,
             fontFamily: "'Geist', system-ui, sans-serif",
             display: 'flex', alignItems: 'center', gap: 8,
