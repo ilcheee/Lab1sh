@@ -179,7 +179,7 @@ export default function UserProfile() {
           <div>
             {loading ? (
               [1, 2, 3].map(i => (
-                <div key={i} style={{ background: '#0d0d0d', border: '1px solid rgba(255,255,255,0.07)', borderRadius: 8, padding: '16px 20px', marginBottom: 10, height: 72 }} />
+                <div key={i} style={{ background: '#0d0d0d', border: '1px solid rgba(255,255,255,0.07)', borderRadius: 16, padding: '16px 20px', marginBottom: 10, height: 72 }} />
               ))
             ) : posts.length === 0 ? (
               <div style={{ textAlign: 'center', padding: '48px 0', color: 'rgba(255,255,255,0.3)', fontSize: 14 }}>
@@ -206,7 +206,7 @@ export default function UserProfile() {
                 >
                   <Link to={`/blog/${post.id}`} style={{ textDecoration: 'none', display: 'block' }}>
                     <div
-                      style={{ background: '#0d0d0d', border: '1px solid rgba(255,255,255,0.07)', borderRadius: 8, padding: '16px 20px', transition: 'border-color 0.15s' }}
+                      style={{ background: '#0d0d0d', border: '1px solid rgba(255,255,255,0.07)', borderRadius: 16, padding: '16px 20px', transition: 'border-color 0.15s' }}
                       onMouseEnter={e => e.currentTarget.style.borderColor = 'rgba(255,255,255,0.15)'}
                       onMouseLeave={e => e.currentTarget.style.borderColor = 'rgba(255,255,255,0.07)'}
                     >
@@ -223,7 +223,7 @@ export default function UserProfile() {
         )}
 
         {activeTab === 'settings' && isOwn && (
-          <div style={{ background: '#0d0d0d', border: '1px solid rgba(255,255,255,0.07)', borderRadius: 8, padding: '28px' }}>
+          <div style={{ background: '#0d0d0d', border: '1px solid rgba(255,255,255,0.07)', borderRadius: 16, padding: '28px' }}>
             <h2 style={{ fontSize: 17, fontWeight: 600, color: '#fff', marginBottom: 22 }}>Edit Profile</h2>
             <form onSubmit={handleSaveProfile}>
               <div style={{ marginBottom: 16 }}>

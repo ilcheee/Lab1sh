@@ -59,7 +59,7 @@ function FeedCard({ post, index = 0 }) {
       style={{
         background: '#0d0d0d',
         border: '1px solid rgba(255,255,255,0.07)',
-        borderRadius: 8,
+        borderRadius: 16,
         padding: '20px',
         marginBottom: 10,
       }}
@@ -98,18 +98,18 @@ function FeedCard({ post, index = 0 }) {
 
         {/* Inline media */}
         {post.imazhi && (
-          <div style={{ marginBottom: 14, borderRadius: 8, overflow: 'hidden', maxWidth: 500 }}>
+          <div style={{ marginBottom: 14, borderRadius: 12, overflow: 'hidden', maxWidth: 500 }}>
             {post.imazhi.match(/\.(mp4|webm|ogg)$/i) ? (
               <video
                 src={`http://localhost:8008${post.imazhi}`}
                 controls
-                style={{ width: '100%', maxWidth: 500, maxHeight: 320, borderRadius: 8, border: '1px solid rgba(255,255,255,0.07)', display: 'block' }}
+                style={{ width: '100%', maxWidth: 500, maxHeight: 320, borderRadius: 12, border: '1px solid rgba(255,255,255,0.07)', display: 'block' }}
               />
             ) : (
               <img
                 src={`http://localhost:8008${post.imazhi}`}
                 alt={post.titulli}
-                style={{ width: '100%', maxWidth: 500, height: 'auto', maxHeight: 360, objectFit: 'cover', borderRadius: 8, border: '1px solid rgba(255,255,255,0.07)', display: 'block' }}
+                style={{ width: '100%', maxWidth: 500, height: 'auto', maxHeight: 360, objectFit: 'cover', borderRadius: 12, border: '1px solid rgba(255,255,255,0.07)', display: 'block' }}
               />
             )}
           </div>
@@ -190,7 +190,7 @@ function FeedCard({ post, index = 0 }) {
 
 function FeedSkeleton() {
   return (
-    <div style={{ background: '#0d0d0d', border: '1px solid rgba(255,255,255,0.07)', borderRadius: 8, padding: '20px', marginBottom: 10, animation: 'skpulse 1.4s ease-in-out infinite' }}>
+    <div style={{ background: '#0d0d0d', border: '1px solid rgba(255,255,255,0.07)', borderRadius: 16, padding: '20px', marginBottom: 10, animation: 'skpulse 1.4s ease-in-out infinite' }}>
       <div style={{ display: 'flex', gap: 12, marginBottom: 12 }}>
         <div style={{ width: 40, height: 40, borderRadius: '50%', background: 'rgba(255,255,255,0.05)', flexShrink: 0 }} />
         <div style={{ flex: 1 }}>
@@ -231,7 +231,7 @@ export default function PostsFeed() {
         {loading ? (
           <>{[1, 2, 3, 4].map(i => <FeedSkeleton key={i} />)}</>
         ) : posts.length === 0 ? (
-          <div style={{ textAlign: 'center', padding: '64px 24px', background: '#0d0d0d', border: '1px solid rgba(255,255,255,0.07)', borderRadius: 8, color: 'rgba(255,255,255,0.3)' }}>
+          <div style={{ textAlign: 'center', padding: '64px 24px', background: '#0d0d0d', border: '1px solid rgba(255,255,255,0.07)', borderRadius: 16, color: 'rgba(255,255,255,0.3)' }}>
             No posts yet. <Link to="/blog/new" style={{ color: '#fff' }}>Be the first to write.</Link>
           </div>
         ) : (

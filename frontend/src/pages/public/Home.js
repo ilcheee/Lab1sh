@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { motion, useInView, animate } from 'framer-motion';
+import { motion, AnimatePresence, useInView, animate } from 'framer-motion';
 import API from '../../api/axios';
 import PublicLayout from './PublicLayout';
 import { useAuth } from '../../context/AuthContext';
@@ -60,15 +60,20 @@ function ParticleCanvas() {
       ctx.clearRect(0, 0, W, H);
       const spread = Math.min(scrollY / 400, 1.8);
 
+      // Pre-compute mouse distance per particle for O(n) cost instead of O(n²)
+      const mouseDists = particles.map(p => {
+        const dx = p.x - mouse.x;
+        const dy = p.y - mouse.y;
+        return Math.sqrt(dx * dx + dy * dy);
+      });
+
       for (const p of particles) {
         p.x += p.vx * (1 + spread * 0.6);
         p.y += p.vy * (1 + spread * 0.6);
         if (p.x < 0 || p.x > W) p.vx *= -1;
         if (p.y < 0 || p.y > H) p.vy *= -1;
 
-        const mdx = p.x - mouse.x;
-        const mdy = p.y - mouse.y;
-        const md = Math.sqrt(mdx * mdx + mdy * mdy);
+        const md = mouseDists[particles.indexOf(p)];
         const proximity = Math.max(0, 1 - md / 80);
 
         const targetRadius = p.r + proximity * (4 - p.r);
@@ -86,17 +91,24 @@ function ParticleCanvas() {
         ctx.shadowBlur = 0;
       }
 
+      // Draw connection lines with cursor-proximity glow
       for (let i = 0; i < particles.length; i++) {
         for (let j = i + 1; j < particles.length; j++) {
           const dx = particles[i].x - particles[j].x;
           const dy = particles[i].y - particles[j].y;
           const d = Math.sqrt(dx * dx + dy * dy);
-          if (d < 120) {
+          if (d < 140) {
+            const closestMouse = Math.min(mouseDists[i], mouseDists[j]);
+            const mouseGlow = Math.max(0, 1 - closestMouse / 120);
+            const baseAlpha = 0.25 * (1 - d / 140);
+            const alpha = Math.min(0.55, baseAlpha + mouseGlow * 0.3);
+            const lw = 1 + mouseGlow * 0.5;
+
             ctx.beginPath();
             ctx.moveTo(particles[i].x, particles[i].y);
             ctx.lineTo(particles[j].x, particles[j].y);
-            ctx.strokeStyle = `rgba(255,255,255,${0.08 * (1 - d / 120)})`;
-            ctx.lineWidth = 1;
+            ctx.strokeStyle = `rgba(255,255,255,${alpha})`;
+            ctx.lineWidth = lw;
             ctx.stroke();
           }
         }
@@ -163,6 +175,7 @@ function StatCard({ value, label, to, borderRight }) {
         padding: '36px 24px', textAlign: 'center',
         borderRight: borderRight ? '1px solid rgba(255,255,255,0.07)' : 'none',
         border: '1px solid rgba(255,255,255,0.12)',
+        borderRadius: 16,
         boxShadow: '0 1px 0 rgba(255,255,255,0.08) inset',
         background: hovered && to ? 'rgba(255,255,255,0.02)' : 'transparent',
         transition: 'background 0.15s',
@@ -179,15 +192,11 @@ function StatCard({ value, label, to, borderRight }) {
 }
 
 // ── Post card ───────────────────────────────────────────────
-function PostCard({ post, index = 0 }) {
+function PostCard({ post }) {
   const excerpt = stripHtml(post.permbajtja || '');
   const [hovered, setHovered] = useState(false);
   return (
     <motion.div
-      initial={{ opacity: 0, y: 20 }}
-      whileInView={{ opacity: 1, y: 0 }}
-      viewport={{ once: true }}
-      transition={{ duration: 0.4, delay: index * 0.1 }}
       whileHover={{ y: -3, transition: { duration: 0.2 } }}
       style={{ height: '100%' }}
     >
@@ -198,7 +207,7 @@ function PostCard({ post, index = 0 }) {
           style={{
             background: '#0d0d0d',
             border: `1px solid ${hovered ? 'rgba(255,255,255,0.15)' : 'rgba(255,255,255,0.07)'}`,
-            borderRadius: 8, padding: '24px', height: '100%',
+            borderRadius: 16, padding: '24px', height: '100%',
             display: 'flex', flexDirection: 'column', transition: 'border-color 0.15s',
           }}
         >
@@ -222,7 +231,151 @@ function PostCard({ post, index = 0 }) {
 }
 
 function Skeleton() {
-  return <div style={{ background: '#0d0d0d', border: '1px solid rgba(255,255,255,0.07)', borderRadius: 8, height: 220, animation: 'skpulse 1.4s ease-in-out infinite' }} />;
+  return <div style={{ background: '#0d0d0d', border: '1px solid rgba(255,255,255,0.07)', borderRadius: 16, height: 220, animation: 'skpulse 1.4s ease-in-out infinite' }} />;
+}
+
+// ── Post carousel ────────────────────────────────────────────
+const slideVariants = {
+  enter: (d) => ({ x: d > 0 ? '110%' : '-110%', opacity: 0 }),
+  center: { x: 0, opacity: 1 },
+  exit:  (d) => ({ x: d > 0 ? '-110%' : '110%', opacity: 0 }),
+};
+
+function PostCarousel({ posts, loading }) {
+  const [[page, dir], setPage] = useState([0, 1]);
+  const [paused, setPaused] = useState(false);
+
+  const perPage = 2;
+  const totalPages = Math.ceil(posts.length / perPage);
+
+  const paginate = (delta) => {
+    setPage(([p]) => {
+      const next = ((p + delta) % totalPages + totalPages) % totalPages;
+      return [next, delta];
+    });
+  };
+
+  const goTo = (idx) => {
+    setPage(([p]) => [idx, idx >= p ? 1 : -1]);
+  };
+
+  useEffect(() => {
+    if (paused || totalPages <= 1) return;
+    const id = setInterval(() => paginate(1), 3000);
+    return () => clearInterval(id);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [paused, totalPages, page]);
+
+  if (loading) {
+    return (
+      <div className="posts-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 16 }}>
+        {[1, 2, 3, 4].map(i => <Skeleton key={i} />)}
+      </div>
+    );
+  }
+
+  if (posts.length === 0) {
+    return (
+      <div style={{ textAlign: 'center', padding: '64px 24px', background: '#0d0d0d', border: '1px solid rgba(255,255,255,0.07)', borderRadius: 16, color: 'rgba(255,255,255,0.3)', fontSize: 15 }}>
+        No published posts yet.
+      </div>
+    );
+  }
+
+  const currentPosts = posts.slice(page * perPage, (page + 1) * perPage);
+
+  // Arrow button style
+  const arrowStyle = (side) => ({
+    position: 'absolute', [side]: 0,
+    top: '50%', transform: 'translateY(-50%)',
+    zIndex: 10,
+    background: 'none', border: 'none', cursor: 'pointer',
+    color: 'rgba(255,255,255,0.3)',
+    fontSize: 28, lineHeight: 1,
+    padding: '4px 6px',
+    transition: 'color 0.15s',
+    fontFamily: 'system-ui',
+  });
+
+  return (
+    <div
+      onMouseEnter={() => setPaused(true)}
+      onMouseLeave={() => setPaused(false)}
+    >
+      {/* Track + arrows */}
+      <div style={{ position: 'relative', padding: totalPages > 1 ? '0 36px' : 0 }}>
+        {totalPages > 1 && (
+          <button
+            onClick={() => paginate(-1)}
+            style={arrowStyle('left')}
+            onMouseEnter={e => e.currentTarget.style.color = 'rgba(255,255,255,0.85)'}
+            onMouseLeave={e => e.currentTarget.style.color = 'rgba(255,255,255,0.3)'}
+          >‹</button>
+        )}
+
+        {/* Overflow clip + height anchor */}
+        <div style={{ position: 'relative', overflow: 'hidden' }}>
+          {/* Invisible spacer to hold the container height during slide transitions */}
+          <div
+            aria-hidden="true"
+            style={{
+              visibility: 'hidden', pointerEvents: 'none',
+              display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 16,
+            }}
+          >
+            {currentPosts.map(p => <PostCard key={`sp-${p.id}`} post={p} />)}
+          </div>
+
+          {/* Animated slide layer */}
+          <AnimatePresence initial={false} custom={dir}>
+            <motion.div
+              key={page}
+              custom={dir}
+              variants={slideVariants}
+              initial="enter"
+              animate="center"
+              exit="exit"
+              transition={{ duration: 0.5, ease: 'easeInOut' }}
+              style={{
+                position: 'absolute', top: 0, left: 0, right: 0,
+                display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 16,
+              }}
+            >
+              {currentPosts.map(p => <PostCard key={p.id} post={p} />)}
+            </motion.div>
+          </AnimatePresence>
+        </div>
+
+        {totalPages > 1 && (
+          <button
+            onClick={() => paginate(1)}
+            style={arrowStyle('right')}
+            onMouseEnter={e => e.currentTarget.style.color = 'rgba(255,255,255,0.85)'}
+            onMouseLeave={e => e.currentTarget.style.color = 'rgba(255,255,255,0.3)'}
+          >›</button>
+        )}
+      </div>
+
+      {/* Dot indicators */}
+      {totalPages > 1 && (
+        <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', gap: 8, marginTop: 20 }}>
+          {Array.from({ length: totalPages }).map((_, i) => (
+            <button
+              key={i}
+              onClick={() => goTo(i)}
+              style={{
+                width: i === page ? 20 : 6,
+                height: 6, borderRadius: 3,
+                background: i === page ? '#fff' : 'rgba(255,255,255,0.25)',
+                border: 'none', cursor: 'pointer', padding: 0,
+                transition: 'all 0.25s ease',
+              }}
+            />
+          ))}
+        </div>
+      )}
+    </div>
+  );
 }
 
 // ── Main component ───────────────────────────────────────────
@@ -328,7 +481,7 @@ export default function Home() {
         </div>
       </section>
 
-      {/* ══ LATEST POSTS ══ */}
+      {/* ══ LATEST POSTS CAROUSEL ══ */}
       <section id="posts" style={{ padding: '80px 24px' }}>
         <div style={{ maxWidth: 1200, margin: '0 auto' }}>
           <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', marginBottom: 40, flexWrap: 'wrap', gap: 12 }}>
@@ -342,33 +495,21 @@ export default function Home() {
             >View all →</Link>
           </div>
 
-          {loading ? (
-            <div className="posts-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 16 }}>
-              {[1, 2, 3, 4].map(i => <Skeleton key={i} />)}
-            </div>
-          ) : posts.length === 0 ? (
-            <div style={{ textAlign: 'center', padding: '64px 24px', background: '#0d0d0d', border: '1px solid rgba(255,255,255,0.07)', borderRadius: 8, color: 'rgba(255,255,255,0.3)', fontSize: 15 }}>
-              No published posts yet.
-            </div>
-          ) : (
-            <div className="posts-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 16 }}>
-              {posts.map((p, i) => <PostCard key={p.id} post={p} index={i} />)}
-            </div>
-          )}
+          <PostCarousel posts={posts} loading={loading} />
         </div>
       </section>
 
       {/* ══ NEWSLETTER ══ */}
       <section style={{ padding: '0 24px 100px' }}>
         <div style={{ maxWidth: 1200, margin: '0 auto' }}>
-          <div style={{ background: '#0d0d0d', border: '1px solid rgba(255,255,255,0.07)', borderRadius: 12, padding: '56px 48px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 40, flexWrap: 'wrap' }}>
+          <div style={{ background: '#0d0d0d', border: '1px solid rgba(255,255,255,0.07)', borderRadius: 16, padding: '56px 48px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 40, flexWrap: 'wrap' }}>
             <div style={{ maxWidth: 420 }}>
               <h2 style={{ fontSize: 26, fontWeight: 700, color: '#fff', letterSpacing: '-0.5px', marginBottom: 10 }}>Stay in the loop</h2>
               <p style={{ color: 'rgba(255,255,255,0.4)', fontSize: 15, lineHeight: 1.7 }}>Get the latest posts delivered to your inbox. No spam, ever.</p>
             </div>
             <div style={{ flex: 1, minWidth: 280, maxWidth: 420 }}>
               {subState === 'done' ? (
-                <div style={{ background: 'rgba(34,197,94,0.08)', border: '1px solid rgba(34,197,94,0.2)', borderRadius: 8, padding: '14px 20px', color: '#22c55e', fontSize: 14, fontWeight: 500 }}>
+                <div style={{ background: 'rgba(34,197,94,0.08)', border: '1px solid rgba(34,197,94,0.2)', borderRadius: 10, padding: '14px 20px', color: '#22c55e', fontSize: 14, fontWeight: 500 }}>
                   ✓ You're subscribed!
                 </div>
               ) : (

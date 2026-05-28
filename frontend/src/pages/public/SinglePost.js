@@ -47,7 +47,7 @@ function CommentItem({ comment, user, onDeleteRequest, index = 0 }) {
         ...(isContributor && {
           background: 'rgba(135,206,235,0.12)',
           borderLeft: '3px solid #87CEEB',
-          borderRadius: '0 8px 8px 0',
+          borderRadius: '0 12px 12px 0',
           paddingLeft: 16,
         }),
       }}
@@ -394,7 +394,7 @@ export default function SinglePost() {
               padding: '28px 24px',
               background: '#0d0d0d',
               border: '1px solid rgba(255,255,255,0.07)',
-              borderRadius: 8,
+              borderRadius: 16,
               color: 'rgba(255,255,255,0.3)',
               fontSize: 14,
               marginBottom: 32,
@@ -414,7 +414,7 @@ export default function SinglePost() {
           )}
 
           {/* Comment form */}
-          <div style={{ background: '#0d0d0d', border: '1px solid rgba(255,255,255,0.07)', borderRadius: 8, padding: '28px' }}>
+          <div style={{ background: '#0d0d0d', border: '1px solid rgba(255,255,255,0.07)', borderRadius: 16, padding: '28px' }}>
             <h3 style={{ fontSize: 17, fontWeight: 600, color: '#fff', marginBottom: 20, letterSpacing: '-0.2px' }}>Leave a comment</h3>
 
             {!user ? (
@@ -431,12 +431,12 @@ export default function SinglePost() {
                   <div style={{
                     background: 'rgba(34,197,94,0.08)',
                     border: '1px solid rgba(34,197,94,0.2)',
-                    borderRadius: 8, padding: '12px 16px', marginBottom: 16,
+                    borderRadius: 10, padding: '12px 16px', marginBottom: 16,
                     color: '#22c55e', fontSize: 14, fontWeight: 500,
                   }}>✓ {successMsg}</div>
                 )}
 
-                <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 14px', background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.07)', borderRadius: 8, marginBottom: 14 }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 14px', background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.07)', borderRadius: 10, marginBottom: 14 }}>
                   <div style={{ width: 26, height: 26, borderRadius: '50%', background: 'rgba(255,255,255,0.08)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 11, fontWeight: 600, color: 'rgba(255,255,255,0.6)', flexShrink: 0 }}>
                     {(user.emri || 'U').slice(0, 2).toUpperCase()}
                   </div>
