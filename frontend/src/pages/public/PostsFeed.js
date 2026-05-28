@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
+import { motion } from 'framer-motion';
 import API from '../../api/axios';
 import PublicLayout from './PublicLayout';
 import { useAuth } from '../../context/AuthContext';
@@ -9,7 +10,7 @@ const fmtDate = (d) =>
 
 const stripHtml = (html = '') => html.replace(/<[^>]*>/g, '').trim();
 
-function FeedCard({ post }) {
+function FeedCard({ post, index = 0 }) {
   const { user } = useAuth();
   const initials = (post.autori || 'A').slice(0, 2).toUpperCase();
   const excerpt = stripHtml(post.permbajtja || '');
@@ -49,13 +50,20 @@ function FeedCard({ post }) {
   };
 
   return (
-    <article style={{
-      background: '#0d0d0d',
-      border: '1px solid rgba(255,255,255,0.07)',
-      borderRadius: 8,
-      padding: '20px',
-      marginBottom: 10,
-    }}>
+    <motion.article
+      initial={{ opacity: 0, y: 20 }}
+      whileInView={{ opacity: 1, y: 0 }}
+      viewport={{ once: true }}
+      transition={{ duration: 0.4, delay: index * 0.1 }}
+      whileHover={{ y: -3, transition: { duration: 0.2 } }}
+      style={{
+        background: '#0d0d0d',
+        border: '1px solid rgba(255,255,255,0.07)',
+        borderRadius: 8,
+        padding: '20px',
+        marginBottom: 10,
+      }}
+    >
       {/* Author row */}
       <div style={{ display: 'flex', gap: 12, marginBottom: 12, alignItems: 'flex-start' }}>
         <div style={{
@@ -121,13 +129,21 @@ function FeedCard({ post }) {
           onMouseLeave={e => { if (!liked) e.currentTarget.style.color = 'rgba(255,255,255,0.5)'; }}
         >
           {liked ? (
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="#ff4444" stroke="#ff4444" strokeWidth="2">
+            <motion.svg
+              whileTap={{ scale: 1.4 }}
+              transition={{ type: 'spring', stiffness: 400, damping: 10 }}
+              width="16" height="16" viewBox="0 0 24 24" fill="#ff4444" stroke="#ff4444" strokeWidth="2"
+            >
               <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/>
-            </svg>
+            </motion.svg>
           ) : (
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+            <motion.svg
+              whileTap={{ scale: 1.4 }}
+              transition={{ type: 'spring', stiffness: 400, damping: 10 }}
+              width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"
+            >
               <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/>
-            </svg>
+            </motion.svg>
           )}
           {likes > 0 && <span>{likes}</span>}
         </button>
@@ -168,7 +184,7 @@ function FeedCard({ post }) {
           {copied ? '✓ Copied' : '↗ Share'}
         </button>
       </div>
-    </article>
+    </motion.article>
   );
 }
 
@@ -219,7 +235,7 @@ export default function PostsFeed() {
             No posts yet. <Link to="/blog/new" style={{ color: '#fff' }}>Be the first to write.</Link>
           </div>
         ) : (
-          posts.map(p => <FeedCard key={p.id} post={p} />)
+          posts.map((p, i) => <FeedCard key={p.id} post={p} index={i} />)
         )}
       </div>
     </PublicLayout>

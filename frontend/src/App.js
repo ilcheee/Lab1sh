@@ -1,4 +1,5 @@
-import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+import { BrowserRouter, Routes, Route, Navigate, useLocation } from 'react-router-dom';
+import { AnimatePresence, motion } from 'framer-motion';
 import { AuthProvider, useAuth } from './context/AuthContext';
 
 // Auth
@@ -77,61 +78,80 @@ const WriterRoute = ({ children }) => {
   return children;
 };
 
+const pageVariants = {
+  initial: { opacity: 0, y: 10 },
+  animate: { opacity: 1, y: 0 },
+  exit:    { opacity: 0, y: -10 },
+};
+
 function AppRoutes() {
+  const location = useLocation();
+
   return (
-    <BrowserRouter>
-      <Routes>
-        {/* ── Public (no login required) ── */}
-        <Route path="/" element={<HomePage />} />
-        <Route path="/about" element={<About />} />
-        <Route path="/login" element={<Login />} />
-        <Route path="/register" element={<Register />} />
+    <AnimatePresence mode="wait">
+      <motion.div
+        key={location.key}
+        variants={pageVariants}
+        initial="initial"
+        animate="animate"
+        exit="exit"
+        transition={{ duration: 0.3 }}
+      >
+        <Routes location={location}>
+          {/* ── Public (no login required) ── */}
+          <Route path="/" element={<HomePage />} />
+          <Route path="/about" element={<About />} />
+          <Route path="/login" element={<Login />} />
+          <Route path="/register" element={<Register />} />
 
-        {/* ── Blog (requires login) ── */}
-        <Route path="/blog" element={<BlogRoute><PostsFeed /></BlogRoute>} />
-        <Route path="/blog/new" element={<WriterRoute><UserPostForm /></WriterRoute>} />
-        <Route path="/blog/category/:slug" element={<BlogRoute><CategoryPosts /></BlogRoute>} />
-        <Route path="/blog/:id" element={<BlogRoute><SinglePost /></BlogRoute>} />
+          {/* ── Blog (requires login) ── */}
+          <Route path="/blog" element={<BlogRoute><PostsFeed /></BlogRoute>} />
+          <Route path="/blog/new" element={<WriterRoute><UserPostForm /></WriterRoute>} />
+          <Route path="/blog/category/:slug" element={<BlogRoute><CategoryPosts /></BlogRoute>} />
+          <Route path="/blog/:id" element={<BlogRoute><SinglePost /></BlogRoute>} />
 
-        {/* ── Profile (any logged-in user, role 1–7) ── */}
-        <Route path="/profile" element={<AuthRoute><UserProfile /></AuthRoute>} />
-        <Route path="/profile/:id" element={<UserProfile />} />
+          {/* ── Profile (any logged-in user, role 1–7) ── */}
+          <Route path="/profile" element={<AuthRoute><UserProfile /></AuthRoute>} />
+          <Route path="/profile/:id" element={<UserProfile />} />
 
-        {/* ── Admin only (roles 1–2) ── */}
-        <Route path="/admin" element={<AdminRoute><Dashboard /></AdminRoute>} />
-        <Route path="/admin/users" element={<AdminRoute><AdminUsers /></AdminRoute>} />
-        <Route path="/settings" element={<AdminRoute><SettingList /></AdminRoute>} />
-        <Route path="/newsletter" element={<AdminRoute><NewsletterList /></AdminRoute>} />
+          {/* ── Admin only (roles 1–2) ── */}
+          <Route path="/admin" element={<AdminRoute><Dashboard /></AdminRoute>} />
+          <Route path="/admin/users" element={<AdminRoute><AdminUsers /></AdminRoute>} />
+          <Route path="/settings" element={<AdminRoute><SettingList /></AdminRoute>} />
+          <Route path="/newsletter" element={<AdminRoute><NewsletterList /></AdminRoute>} />
 
-        {/* ── Redaktor+ (roles 1–3): can approve posts ── */}
-        <Route path="/comments" element={<RedaktorRoute><CommentList /></RedaktorRoute>} />
+          {/* ── Redaktor+ (roles 1–3): can approve posts ── */}
+          <Route path="/comments" element={<RedaktorRoute><CommentList /></RedaktorRoute>} />
 
-        {/* ── Editor+ (roles 1–4) ── */}
-        <Route path="/categories" element={<EditorRoute><CategoryList /></EditorRoute>} />
-        <Route path="/categories/new" element={<EditorRoute><CategoryForm /></EditorRoute>} />
-        <Route path="/categories/edit/:id" element={<EditorRoute><CategoryForm /></EditorRoute>} />
-        <Route path="/tags" element={<EditorRoute><TagList /></EditorRoute>} />
-        <Route path="/tags/new" element={<EditorRoute><TagForm /></EditorRoute>} />
-        <Route path="/tags/edit/:id" element={<EditorRoute><TagForm /></EditorRoute>} />
-        <Route path="/pages" element={<EditorRoute><PageList /></EditorRoute>} />
-        <Route path="/pages/new" element={<EditorRoute><PageForm /></EditorRoute>} />
-        <Route path="/pages/edit/:id" element={<EditorRoute><PageForm /></EditorRoute>} />
+          {/* ── Editor+ (roles 1–4) ── */}
+          <Route path="/categories" element={<EditorRoute><CategoryList /></EditorRoute>} />
+          <Route path="/categories/new" element={<EditorRoute><CategoryForm /></EditorRoute>} />
+          <Route path="/categories/edit/:id" element={<EditorRoute><CategoryForm /></EditorRoute>} />
+          <Route path="/tags" element={<EditorRoute><TagList /></EditorRoute>} />
+          <Route path="/tags/new" element={<EditorRoute><TagForm /></EditorRoute>} />
+          <Route path="/tags/edit/:id" element={<EditorRoute><TagForm /></EditorRoute>} />
+          <Route path="/pages" element={<EditorRoute><PageList /></EditorRoute>} />
+          <Route path="/pages/new" element={<EditorRoute><PageForm /></EditorRoute>} />
+          <Route path="/pages/edit/:id" element={<EditorRoute><PageForm /></EditorRoute>} />
 
-        {/* ── Writer+ (roles 1–6) ── */}
-        <Route path="/posts" element={<WriterRoute><PostList /></WriterRoute>} />
-        <Route path="/posts/new" element={<WriterRoute><PostForm /></WriterRoute>} />
-        <Route path="/posts/edit/:id" element={<WriterRoute><PostForm /></WriterRoute>} />
-        <Route path="/media" element={<WriterRoute><MediaList /></WriterRoute>} />
-      </Routes>
-    </BrowserRouter>
+          {/* ── Writer+ (roles 1–6) ── */}
+          <Route path="/posts" element={<WriterRoute><PostList /></WriterRoute>} />
+          <Route path="/posts/new" element={<WriterRoute><PostForm /></WriterRoute>} />
+          <Route path="/posts/edit/:id" element={<WriterRoute><PostForm /></WriterRoute>} />
+          <Route path="/media" element={<WriterRoute><MediaList /></WriterRoute>} />
+        </Routes>
+      </motion.div>
+    </AnimatePresence>
   );
 }
 
 function App() {
   return (
-    <AuthProvider>
-      <AppRoutes />
-    </AuthProvider>
+    <BrowserRouter>
+      <AuthProvider>
+        <AppRoutes />
+      </AuthProvider>
+    </BrowserRouter>
   );
 }
 

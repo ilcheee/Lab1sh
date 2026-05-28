@@ -1,9 +1,15 @@
 import { useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
+import { motion, AnimatePresence } from 'framer-motion';
 import { useAuth } from '../../context/AuthContext';
 import Modal from '../../components/Modal';
 
 const ROLE_NAMES = { 7: 'Member', 8: 'Guest' };
+
+const navLinkVariants = {
+  hidden: { opacity: 0, y: -6 },
+  show: { opacity: 1, y: 0 },
+};
 
 function NavCTA({ user, onClose, onWriteClick }) {
   const role = user?.role_id;
@@ -39,7 +45,7 @@ function NavCTA({ user, onClose, onWriteClick }) {
 
 export default function PublicLayout({ children }) {
   const [menuOpen, setMenuOpen] = useState(false);
-  const [writeModal, setWriteModal] = useState(null); // null | 'no_permission' | 'not_logged_in'
+  const [writeModal, setWriteModal] = useState(null);
   const { pathname } = useLocation();
   const { user, logout } = useAuth();
   const navigate = useNavigate();
@@ -67,15 +73,17 @@ export default function PublicLayout({ children }) {
     }
   };
 
-  const navLink = (to, label) => (
-    <Link key={to} to={to} style={{
-      fontSize: 14, fontWeight: 500, textDecoration: 'none', padding: '4px 2px',
-      color: pathname === to ? '#fff' : 'rgba(255,255,255,0.5)',
-      transition: 'color 0.15s',
-    }}
-    onMouseEnter={e => { if (pathname !== to) e.currentTarget.style.color = 'rgba(255,255,255,0.85)'; }}
-    onMouseLeave={e => { if (pathname !== to) e.currentTarget.style.color = 'rgba(255,255,255,0.5)'; }}
-    >{label}</Link>
+  const navLink = (to, label, delay = 0) => (
+    <motion.div key={to} variants={navLinkVariants} transition={{ delay }}>
+      <Link to={to} style={{
+        fontSize: 14, fontWeight: 500, textDecoration: 'none', padding: '4px 2px',
+        color: pathname === to ? '#fff' : 'rgba(255,255,255,0.5)',
+        transition: 'color 0.15s',
+      }}
+      onMouseEnter={e => { if (pathname !== to) e.currentTarget.style.color = 'rgba(255,255,255,0.85)'; }}
+      onMouseLeave={e => { if (pathname !== to) e.currentTarget.style.color = 'rgba(255,255,255,0.5)'; }}
+      >{label}</Link>
+    </motion.div>
   );
 
   return (
@@ -96,12 +104,17 @@ export default function PublicLayout({ children }) {
             Blog
           </Link>
 
-          {/* Desktop nav */}
-          <nav style={{ display: 'flex', alignItems: 'center', gap: 28, flex: 1 }}>
-            {navLink('/', 'Home')}
-            {navLink('/blog', 'Blog')}
-            {navLink('/about', 'About')}
-          </nav>
+          {/* Desktop nav with stagger */}
+          <motion.nav
+            initial="hidden"
+            animate="show"
+            variants={{ hidden: {}, show: { transition: { staggerChildren: 0.08 } } }}
+            style={{ display: 'flex', alignItems: 'center', gap: 28, flex: 1 }}
+          >
+            {navLink('/', 'Home', 0)}
+            {navLink('/blog', 'Blog', 0.08)}
+            {navLink('/about', 'About', 0.16)}
+          </motion.nav>
 
           {/* Auth buttons */}
           <div style={{ display: 'flex', alignItems: 'center', gap: 10 }} className="desktop-auth">
@@ -131,28 +144,37 @@ export default function PublicLayout({ children }) {
           </div>
         </div>
 
-        {menuOpen && (
-          <div style={{ borderTop: '1px solid rgba(255,255,255,0.07)', background: '#000' }}>
-            <div style={{ maxWidth: 1200, margin: '0 auto', padding: '16px 24px 20px', display: 'flex', flexDirection: 'column', gap: 12 }}>
-              <Link to="/" onClick={() => setMenuOpen(false)} style={{ color: 'rgba(255,255,255,0.7)', fontSize: 15, textDecoration: 'none', fontWeight: 500 }}>Home</Link>
-              <Link to="/blog" onClick={() => setMenuOpen(false)} style={{ color: 'rgba(255,255,255,0.7)', fontSize: 15, textDecoration: 'none', fontWeight: 500 }}>Blog</Link>
-              <Link to="/about" onClick={() => setMenuOpen(false)} style={{ color: 'rgba(255,255,255,0.7)', fontSize: 15, textDecoration: 'none', fontWeight: 500 }}>About</Link>
-              <div style={{ display: 'flex', gap: 10, marginTop: 8, flexWrap: 'wrap' }}>
-                {user ? (
-                  <>
-                    <NavCTA user={user} onClose={() => setMenuOpen(false)} onWriteClick={handleWriteClick} />
-                    <button onClick={() => { handleLogout(); setMenuOpen(false); }} className="ubt-btn ubt-btn-primary" style={{ fontSize: 13 }}>Log Out</button>
-                  </>
-                ) : (
-                  <>
-                    <Link to="/login" onClick={() => setMenuOpen(false)} className="ubt-btn ubt-btn-outline" style={{ fontSize: 13 }}>Log In</Link>
-                    <Link to="/register" onClick={() => setMenuOpen(false)} className="ubt-btn ubt-btn-primary" style={{ fontSize: 13 }}>Sign Up</Link>
-                  </>
-                )}
+        {/* Mobile menu with AnimatePresence slide-down */}
+        <AnimatePresence>
+          {menuOpen && (
+            <motion.div
+              initial={{ opacity: 0, y: -10 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -10 }}
+              transition={{ duration: 0.2, ease: 'easeOut' }}
+              style={{ borderTop: '1px solid rgba(255,255,255,0.07)', background: '#000', overflow: 'hidden' }}
+            >
+              <div style={{ maxWidth: 1200, margin: '0 auto', padding: '16px 24px 20px', display: 'flex', flexDirection: 'column', gap: 12 }}>
+                <Link to="/" onClick={() => setMenuOpen(false)} style={{ color: 'rgba(255,255,255,0.7)', fontSize: 15, textDecoration: 'none', fontWeight: 500 }}>Home</Link>
+                <Link to="/blog" onClick={() => setMenuOpen(false)} style={{ color: 'rgba(255,255,255,0.7)', fontSize: 15, textDecoration: 'none', fontWeight: 500 }}>Blog</Link>
+                <Link to="/about" onClick={() => setMenuOpen(false)} style={{ color: 'rgba(255,255,255,0.7)', fontSize: 15, textDecoration: 'none', fontWeight: 500 }}>About</Link>
+                <div style={{ display: 'flex', gap: 10, marginTop: 8, flexWrap: 'wrap' }}>
+                  {user ? (
+                    <>
+                      <NavCTA user={user} onClose={() => setMenuOpen(false)} onWriteClick={handleWriteClick} />
+                      <button onClick={() => { handleLogout(); setMenuOpen(false); }} className="ubt-btn ubt-btn-primary" style={{ fontSize: 13 }}>Log Out</button>
+                    </>
+                  ) : (
+                    <>
+                      <Link to="/login" onClick={() => setMenuOpen(false)} className="ubt-btn ubt-btn-outline" style={{ fontSize: 13 }}>Log In</Link>
+                      <Link to="/register" onClick={() => setMenuOpen(false)} className="ubt-btn ubt-btn-primary" style={{ fontSize: 13 }}>Sign Up</Link>
+                    </>
+                  )}
+                </div>
               </div>
-            </div>
-          </div>
-        )}
+            </motion.div>
+          )}
+        </AnimatePresence>
       </header>
 
       {/* ══ CONTENT ══ */}

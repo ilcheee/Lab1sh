@@ -1,4 +1,5 @@
 import { Link, useNavigate, useLocation } from 'react-router-dom';
+import { motion } from 'framer-motion';
 import { useAuth } from '../context/AuthContext';
 
 const ALL_NAV_ITEMS = [
@@ -17,6 +18,16 @@ const ALL_NAV_ITEMS = [
 const ROLE_LABEL = {
   1: 'Super Admin', 2: 'Admin', 3: 'Redaktor', 4: 'Editor',
   5: 'Author', 6: 'Contributor', 7: 'Member', 8: 'Guest',
+};
+
+const containerVariants = {
+  hidden: {},
+  show: { transition: { staggerChildren: 0.05 } },
+};
+
+const itemVariants = {
+  hidden: { opacity: 0, x: -10 },
+  show: { opacity: 1, x: 0, transition: { duration: 0.25 } },
 };
 
 export default function Sidebar() {
@@ -67,45 +78,63 @@ export default function Sidebar() {
       </div>
 
       {/* ── Navigation ── */}
-      <nav style={{ flex: 1, padding: '10px', overflowY: 'auto' }}>
+      <motion.nav
+        variants={containerVariants}
+        initial="hidden"
+        animate="show"
+        style={{ flex: 1, padding: '10px', overflowY: 'auto' }}
+      >
         {navItems.map(item => {
           const active = isActive(item.to);
           return (
-            <Link
-              key={item.to}
-              to={item.to}
-              style={{
-                display: 'flex', alignItems: 'center', gap: 10,
-                padding: '8px 12px', borderRadius: 6, marginBottom: 1,
-                textDecoration: 'none',
-                background: active ? 'rgba(255,255,255,0.08)' : 'transparent',
-                color: active ? '#fff' : 'rgba(255,255,255,0.45)',
-                fontWeight: active ? 500 : 400,
-                fontSize: 14,
-                transition: 'all 0.12s',
-              }}
-              onMouseEnter={e => { if (!active) { e.currentTarget.style.background = 'rgba(255,255,255,0.05)'; e.currentTarget.style.color = 'rgba(255,255,255,0.8)'; } }}
-              onMouseLeave={e => { if (!active) { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = 'rgba(255,255,255,0.45)'; } }}
-            >
-              <span style={{ fontSize: 14, width: 18, textAlign: 'center', flexShrink: 0, opacity: active ? 1 : 0.6 }}>{item.icon}</span>
-              {item.label}
-              {active && <div style={{ marginLeft: 'auto', width: 4, height: 4, borderRadius: '50%', background: '#fff', opacity: 0.5 }} />}
-            </Link>
+            <motion.div key={item.to} variants={itemVariants} style={{ position: 'relative', marginBottom: 1 }}>
+              {active && (
+                <motion.div
+                  layoutId="sidebar-active"
+                  style={{
+                    position: 'absolute', inset: 0,
+                    background: 'rgba(255,255,255,0.08)',
+                    borderRadius: 6,
+                  }}
+                  transition={{ type: 'spring', stiffness: 380, damping: 30 }}
+                />
+              )}
+              <Link
+                to={item.to}
+                style={{
+                  display: 'flex', alignItems: 'center', gap: 10,
+                  padding: '8px 12px', borderRadius: 6,
+                  textDecoration: 'none', position: 'relative', zIndex: 1,
+                  background: 'transparent',
+                  color: active ? '#fff' : 'rgba(255,255,255,0.45)',
+                  fontWeight: active ? 500 : 400,
+                  fontSize: 14,
+                  transition: 'color 0.12s',
+                }}
+                onMouseEnter={e => { if (!active) { e.currentTarget.style.color = 'rgba(255,255,255,0.8)'; } }}
+                onMouseLeave={e => { if (!active) { e.currentTarget.style.color = 'rgba(255,255,255,0.45)'; } }}
+              >
+                <span style={{ fontSize: 14, width: 18, textAlign: 'center', flexShrink: 0, opacity: active ? 1 : 0.6 }}>{item.icon}</span>
+                {item.label}
+              </Link>
+            </motion.div>
           );
         })}
 
         <div style={{ borderTop: '1px solid rgba(255,255,255,0.06)', margin: '10px 4px' }} />
 
-        <Link
-          to="/blog"
-          style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '8px 12px', borderRadius: 6, textDecoration: 'none', color: 'rgba(255,255,255,0.4)', fontSize: 14, transition: 'all 0.12s' }}
-          onMouseEnter={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.05)'; e.currentTarget.style.color = 'rgba(255,255,255,0.8)'; }}
-          onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = 'rgba(255,255,255,0.4)'; }}
-        >
-          <span style={{ fontSize: 14, width: 18, textAlign: 'center', opacity: 0.5 }}>↗</span>
-          View Blog
-        </Link>
-      </nav>
+        <motion.div variants={itemVariants}>
+          <Link
+            to="/blog"
+            style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '8px 12px', borderRadius: 6, textDecoration: 'none', color: 'rgba(255,255,255,0.4)', fontSize: 14, transition: 'all 0.12s' }}
+            onMouseEnter={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.05)'; e.currentTarget.style.color = 'rgba(255,255,255,0.8)'; }}
+            onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = 'rgba(255,255,255,0.4)'; }}
+          >
+            <span style={{ fontSize: 14, width: 18, textAlign: 'center', opacity: 0.5 }}>↗</span>
+            View Blog
+          </Link>
+        </motion.div>
+      </motion.nav>
 
       {/* ── Sign out ── */}
       <div style={{ padding: '12px 10px', borderTop: '1px solid rgba(255,255,255,0.06)' }}>

@@ -1,11 +1,11 @@
-import { useEffect, useRef } from 'react';
+import { useState, useEffect } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
 
 export default function Toast({ message, type = 'success', onClose }) {
-  const onCloseRef = useRef(onClose);
-  useEffect(() => { onCloseRef.current = onClose; }, [onClose]);
+  const [visible, setVisible] = useState(true);
 
   useEffect(() => {
-    const timer = setTimeout(() => onCloseRef.current(), 3000);
+    const timer = setTimeout(() => setVisible(false), 3000);
     return () => clearTimeout(timer);
   }, []);
 
@@ -16,55 +16,53 @@ export default function Toast({ message, type = 'success', onClose }) {
   const icon       = isSuccess ? '✓' : '✕';
 
   return (
-    <>
-      <style>{`
-        @keyframes toastSlideIn {
-          from { opacity: 0; transform: translateX(110%) }
-          to   { opacity: 1; transform: translateX(0)    }
-        }
-      `}</style>
-
-      <div
-        style={{
-          position: 'fixed', bottom: 24, right: 24, zIndex: 10000,
-          background: '#111111',
-          border: `1px solid ${borderColor}`,
-          borderRadius: 10,
-          padding: '12px 14px',
-          display: 'flex', alignItems: 'center', gap: 10,
-          minWidth: 220, maxWidth: 360,
-          boxShadow: '0 8px 28px rgba(0,0,0,0.45)',
-          animation: 'toastSlideIn 0.25s ease',
-          fontFamily: "'Geist', sans-serif",
-        }}
-      >
-        <span style={{
-          width: 20, height: 20, borderRadius: '50%',
-          background: iconBg,
-          border: `1px solid ${borderColor}`,
-          display: 'flex', alignItems: 'center', justifyContent: 'center',
-          color: iconColor, fontSize: 11, fontWeight: 700, flexShrink: 0,
-        }}>
-          {icon}
-        </span>
-
-        <span style={{ fontSize: 13, color: '#fff', flex: 1, lineHeight: 1.4 }}>
-          {message}
-        </span>
-
-        <button
-          onClick={onClose}
+    <AnimatePresence onExitComplete={onClose}>
+      {visible && (
+        <motion.div
+          initial={{ x: 100, opacity: 0 }}
+          animate={{ x: 0, opacity: 1 }}
+          exit={{ x: 100, opacity: 0 }}
+          transition={{ duration: 0.25, ease: 'easeOut' }}
           style={{
-            background: 'none', border: 'none', cursor: 'pointer',
-            color: 'rgba(255,255,255,0.3)', fontSize: 18, padding: 0,
-            lineHeight: 1, fontFamily: "'Geist', sans-serif", flexShrink: 0,
+            position: 'fixed', bottom: 24, right: 24, zIndex: 10000,
+            background: '#111111',
+            border: `1px solid ${borderColor}`,
+            borderRadius: 10,
+            padding: '12px 14px',
+            display: 'flex', alignItems: 'center', gap: 10,
+            minWidth: 220, maxWidth: 360,
+            boxShadow: '0 8px 28px rgba(0,0,0,0.45)',
+            fontFamily: "'Geist', sans-serif",
           }}
-          onMouseEnter={e => { e.currentTarget.style.color = 'rgba(255,255,255,0.7)'; }}
-          onMouseLeave={e => { e.currentTarget.style.color = 'rgba(255,255,255,0.3)'; }}
         >
-          ×
-        </button>
-      </div>
-    </>
+          <span style={{
+            width: 20, height: 20, borderRadius: '50%',
+            background: iconBg,
+            border: `1px solid ${borderColor}`,
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            color: iconColor, fontSize: 11, fontWeight: 700, flexShrink: 0,
+          }}>
+            {icon}
+          </span>
+
+          <span style={{ fontSize: 13, color: '#fff', flex: 1, lineHeight: 1.4 }}>
+            {message}
+          </span>
+
+          <button
+            onClick={() => setVisible(false)}
+            style={{
+              background: 'none', border: 'none', cursor: 'pointer',
+              color: 'rgba(255,255,255,0.3)', fontSize: 18, padding: 0,
+              lineHeight: 1, fontFamily: "'Geist', sans-serif", flexShrink: 0,
+            }}
+            onMouseEnter={e => { e.currentTarget.style.color = 'rgba(255,255,255,0.7)'; }}
+            onMouseLeave={e => { e.currentTarget.style.color = 'rgba(255,255,255,0.3)'; }}
+          >
+            ×
+          </button>
+        </motion.div>
+      )}
+    </AnimatePresence>
   );
 }

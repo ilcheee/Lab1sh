@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
+import { motion, useInView, animate } from 'framer-motion';
 import API from '../../api/axios';
 import PublicLayout from './PublicLayout';
 import { useAuth } from '../../context/AuthContext';
@@ -129,6 +130,28 @@ function ParticleCanvas() {
   );
 }
 
+// ── Animated count-up number ────────────────────────────────
+function AnimatedNumber({ value }) {
+  const ref = useRef(null);
+  const inView = useInView(ref, { once: true });
+  const numValue = parseInt(value, 10);
+  const isNum = !isNaN(numValue);
+  const [display, setDisplay] = useState(0);
+
+  useEffect(() => {
+    if (inView && isNum) {
+      const ctrl = animate(0, numValue, {
+        duration: 1.2,
+        ease: 'easeOut',
+        onUpdate: v => setDisplay(Math.round(v)),
+      });
+      return () => ctrl.stop();
+    }
+  }, [inView, isNum, numValue]);
+
+  return <span ref={ref}>{isNum ? display : value}</span>;
+}
+
 // ── Stat card ───────────────────────────────────────────────
 function StatCard({ value, label, to, borderRight }) {
   const [hovered, setHovered] = useState(false);
@@ -146,7 +169,9 @@ function StatCard({ value, label, to, borderRight }) {
         cursor: to ? 'pointer' : 'default',
       }}
     >
-      <div style={{ fontSize: 32, fontWeight: 700, color: '#fff', letterSpacing: '-1px', marginBottom: 6 }}>{value}</div>
+      <div style={{ fontSize: 32, fontWeight: 700, color: '#fff', letterSpacing: '-1px', marginBottom: 6 }}>
+        <AnimatedNumber value={value} />
+      </div>
       <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.3)', textTransform: 'uppercase', letterSpacing: '0.5px', fontWeight: 500 }}>{label}</div>
     </div>
   );
@@ -154,36 +179,45 @@ function StatCard({ value, label, to, borderRight }) {
 }
 
 // ── Post card ───────────────────────────────────────────────
-function PostCard({ post }) {
+function PostCard({ post, index = 0 }) {
   const excerpt = stripHtml(post.permbajtja || '');
   const [hovered, setHovered] = useState(false);
   return (
-    <Link to={`/blog/${post.id}`} style={{ textDecoration: 'none', display: 'block', height: '100%' }}>
-      <article
-        onMouseEnter={() => setHovered(true)}
-        onMouseLeave={() => setHovered(false)}
-        style={{
-          background: '#0d0d0d',
-          border: `1px solid ${hovered ? 'rgba(255,255,255,0.15)' : 'rgba(255,255,255,0.07)'}`,
-          borderRadius: 8, padding: '24px', height: '100%',
-          display: 'flex', flexDirection: 'column', transition: 'border-color 0.15s',
-        }}
-      >
-        {post.kategoria && (
-          <span style={{ display: 'inline-block', fontSize: 11, fontWeight: 500, color: 'rgba(255,255,255,0.35)', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: 14 }}>{post.kategoria}</span>
-        )}
-        <h3 style={{ fontSize: 17, fontWeight: 600, color: '#fff', lineHeight: 1.4, marginBottom: 10, letterSpacing: '-0.2px' }}>{post.titulli}</h3>
-        {excerpt && (
-          <p style={{ color: 'rgba(255,255,255,0.4)', fontSize: 14, lineHeight: 1.7, flex: 1, marginBottom: 20 }}>
-            {excerpt.length > 120 ? excerpt.slice(0, 120) + '…' : excerpt}
-          </p>
-        )}
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: 'auto', paddingTop: 16, borderTop: '1px solid rgba(255,255,255,0.06)' }}>
-          <span style={{ fontSize: 12, color: 'rgba(255,255,255,0.3)', fontWeight: 500 }}>{post.autori || 'Anonymous'}</span>
-          <span style={{ fontSize: 12, color: 'rgba(255,255,255,0.25)' }}>{fmtDate(post.created_at)}</span>
-        </div>
-      </article>
-    </Link>
+    <motion.div
+      initial={{ opacity: 0, y: 20 }}
+      whileInView={{ opacity: 1, y: 0 }}
+      viewport={{ once: true }}
+      transition={{ duration: 0.4, delay: index * 0.1 }}
+      whileHover={{ y: -3, transition: { duration: 0.2 } }}
+      style={{ height: '100%' }}
+    >
+      <Link to={`/blog/${post.id}`} style={{ textDecoration: 'none', display: 'block', height: '100%' }}>
+        <article
+          onMouseEnter={() => setHovered(true)}
+          onMouseLeave={() => setHovered(false)}
+          style={{
+            background: '#0d0d0d',
+            border: `1px solid ${hovered ? 'rgba(255,255,255,0.15)' : 'rgba(255,255,255,0.07)'}`,
+            borderRadius: 8, padding: '24px', height: '100%',
+            display: 'flex', flexDirection: 'column', transition: 'border-color 0.15s',
+          }}
+        >
+          {post.kategoria && (
+            <span style={{ display: 'inline-block', fontSize: 11, fontWeight: 500, color: 'rgba(255,255,255,0.35)', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: 14 }}>{post.kategoria}</span>
+          )}
+          <h3 style={{ fontSize: 17, fontWeight: 600, color: '#fff', lineHeight: 1.4, marginBottom: 10, letterSpacing: '-0.2px' }}>{post.titulli}</h3>
+          {excerpt && (
+            <p style={{ color: 'rgba(255,255,255,0.4)', fontSize: 14, lineHeight: 1.7, flex: 1, marginBottom: 20 }}>
+              {excerpt.length > 120 ? excerpt.slice(0, 120) + '…' : excerpt}
+            </p>
+          )}
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: 'auto', paddingTop: 16, borderTop: '1px solid rgba(255,255,255,0.06)' }}>
+            <span style={{ fontSize: 12, color: 'rgba(255,255,255,0.3)', fontWeight: 500 }}>{post.autori || 'Anonymous'}</span>
+            <span style={{ fontSize: 12, color: 'rgba(255,255,255,0.25)' }}>{fmtDate(post.created_at)}</span>
+          </div>
+        </article>
+      </Link>
+    </motion.div>
   );
 }
 
@@ -200,8 +234,7 @@ export default function Home() {
   const [loading, setLoading] = useState(true);
   const [email, setEmail] = useState('');
   const [subState, setSubState] = useState('idle');
-  const [heroVisible, setHeroVisible] = useState(false);
-  const [writeModal, setWriteModal] = useState(null); // null | 'no_permission'
+  const [writeModal, setWriteModal] = useState(null);
 
   const handleHeroWrite = (e) => {
     if (user?.role_id >= 7) {
@@ -211,9 +244,6 @@ export default function Home() {
   };
 
   useEffect(() => {
-    // Trigger hero fade-in
-    const t = setTimeout(() => setHeroVisible(true), 60);
-
     Promise.all([
       API.get('/posts?limit=6').catch(() => ({ data: [] })),
       API.get('/dashboard/public-stats').catch(() => ({ data: null })),
@@ -222,8 +252,6 @@ export default function Home() {
       setStats(sr.data);
       setLoading(false);
     });
-
-    return () => clearTimeout(t);
   }, []);
 
   const handleSubscribe = async (e) => {
@@ -248,21 +276,32 @@ export default function Home() {
       {/* ══ HERO ══ */}
       <section style={{ background: '#000', ...GRID_BG, padding: '120px 24px 100px', textAlign: 'center', position: 'relative', overflow: 'hidden' }}>
         <ParticleCanvas />
-        <div style={{
-          maxWidth: 720, margin: '0 auto', position: 'relative', zIndex: 1,
-          opacity: heroVisible ? 1 : 0,
-          transform: heroVisible ? 'translateY(0)' : 'translateY(20px)',
-          transition: 'opacity 0.8s ease, transform 0.8s ease',
-        }}>
-          <h1 style={{ fontSize: 'clamp(52px, 9vw, 88px)', fontWeight: 800, color: '#fff', letterSpacing: '-3px', lineHeight: 1.0, marginBottom: 28 }}>
+        <div style={{ maxWidth: 720, margin: '0 auto', position: 'relative', zIndex: 1 }}>
+          <motion.h1
+            initial={{ opacity: 0, y: 30 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.6, ease: 'easeOut' }}
+            style={{ fontSize: 'clamp(52px, 9vw, 88px)', fontWeight: 800, color: '#fff', letterSpacing: '-3px', lineHeight: 1.0, marginBottom: 28 }}
+          >
             Write.<br />Read.<br />Connect.
-          </h1>
+          </motion.h1>
 
-          <p style={{ color: 'rgba(255,255,255,0.4)', fontSize: 17, lineHeight: 1.75, maxWidth: 460, margin: '0 auto 44px' }}>
+          <motion.p
+            initial={{ opacity: 0, y: 30 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.6, ease: 'easeOut', delay: 0.2 }}
+            style={{ color: 'rgba(255,255,255,0.4)', fontSize: 17, lineHeight: 1.75, maxWidth: 460, margin: '0 auto 44px' }}
+          >
             A platform for writers, thinkers, and readers.
-          </p>
+          </motion.p>
 
-          <div className="hero-actions" style={{ display: 'flex', gap: 12, justifyContent: 'center', flexWrap: 'wrap' }}>
+          <motion.div
+            className="hero-actions"
+            initial={{ opacity: 0, y: 30 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.6, ease: 'easeOut', delay: 0.4 }}
+            style={{ display: 'flex', gap: 12, justifyContent: 'center', flexWrap: 'wrap' }}
+          >
             <Link to="/blog" className="ubt-btn ubt-btn-primary" style={{ padding: '11px 28px', fontSize: 15 }}>
               Start Reading
             </Link>
@@ -275,7 +314,7 @@ export default function Home() {
                 Start Writing
               </Link>
             )}
-          </div>
+          </motion.div>
         </div>
       </section>
 
@@ -313,7 +352,7 @@ export default function Home() {
             </div>
           ) : (
             <div className="posts-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 16 }}>
-              {posts.map(p => <PostCard key={p.id} post={p} />)}
+              {posts.map((p, i) => <PostCard key={p.id} post={p} index={i} />)}
             </div>
           )}
         </div>
@@ -345,6 +384,7 @@ export default function Home() {
           </div>
         </div>
       </section>
+
       <Modal
         isOpen={writeModal === 'no_permission'}
         title="Insufficient privileges"

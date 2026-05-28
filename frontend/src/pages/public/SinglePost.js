@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
+import { motion } from 'framer-motion';
 import API from '../../api/axios';
 import PublicLayout from './PublicLayout';
 import { useAuth } from '../../context/AuthContext';
@@ -25,7 +26,7 @@ const TrashIcon = () => (
   </svg>
 );
 
-function CommentItem({ comment, user, onDeleteRequest }) {
+function CommentItem({ comment, user, onDeleteRequest, index = 0 }) {
   const [hovered, setHovered] = useState(false);
   const [trashHovered, setTrashHovered] = useState(false);
   const initials = (comment.autori || 'A').slice(0, 2).toUpperCase();
@@ -33,7 +34,10 @@ function CommentItem({ comment, user, onDeleteRequest }) {
   const canDelete = user && (user.id === comment.user_id || user.role_id <= 3);
 
   return (
-    <div
+    <motion.div
+      initial={{ opacity: 0, y: 15 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.4, delay: index * 0.08 }}
       onMouseEnter={() => setHovered(true)}
       onMouseLeave={() => setHovered(false)}
       style={{
@@ -89,7 +93,7 @@ function CommentItem({ comment, user, onDeleteRequest }) {
           <TrashIcon />
         </button>
       )}
-    </div>
+    </motion.div>
   );
 }
 
@@ -218,25 +222,40 @@ export default function SinglePost() {
           </nav>
 
           {post.kategoria && (
-            <span style={{
-              display: 'inline-block', fontSize: 11, fontWeight: 500,
-              color: 'rgba(255,255,255,0.35)', textTransform: 'uppercase',
-              letterSpacing: '0.5px', marginBottom: 20,
-              padding: '4px 12px', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 25,
-            }}>{post.kategoria}</span>
+            <motion.span
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.4 }}
+              style={{
+                display: 'inline-block', fontSize: 11, fontWeight: 500,
+                color: 'rgba(255,255,255,0.35)', textTransform: 'uppercase',
+                letterSpacing: '0.5px', marginBottom: 20,
+                padding: '4px 12px', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 25,
+              }}
+            >{post.kategoria}</motion.span>
           )}
 
-          <h1 style={{
-            fontSize: 'clamp(28px, 5vw, 48px)',
-            fontWeight: 800,
-            color: '#fff',
-            lineHeight: 1.1,
-            letterSpacing: '-1.5px',
-            marginBottom: 28,
-          }}>{post.titulli}</h1>
+          <motion.h1
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.5, delay: 0.1 }}
+            style={{
+              fontSize: 'clamp(28px, 5vw, 48px)',
+              fontWeight: 800,
+              color: '#fff',
+              lineHeight: 1.1,
+              letterSpacing: '-1.5px',
+              marginBottom: 28,
+            }}
+          >{post.titulli}</motion.h1>
 
           {/* Meta */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
+          <motion.div
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.4, delay: 0.25 }}
+            style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}
+          >
             <div style={{
               width: 30, height: 30, borderRadius: '50%',
               background: 'rgba(255,255,255,0.08)',
@@ -253,7 +272,7 @@ export default function SinglePost() {
             <span style={{ color: 'rgba(255,255,255,0.3)', fontSize: 13 }}>{readTime(post.permbajtja)} min read</span>
             <span style={{ color: 'rgba(255,255,255,0.2)', margin: '0 4px' }}>·</span>
             <span style={{ color: 'rgba(255,255,255,0.3)', fontSize: 13 }}>{comments.length} comments</span>
-          </div>
+          </motion.div>
         </div>
       </div>
 
@@ -269,7 +288,13 @@ export default function SinglePost() {
 
       {/* ══ POST BODY ══ */}
       <div style={{ maxWidth: 720, margin: '0 auto', padding: '56px 24px 0' }}>
-        <div className="post-content" dangerouslySetInnerHTML={{ __html: post.permbajtja || '' }} />
+        <motion.div
+          className="post-content"
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ duration: 0.5, delay: 0.3 }}
+          dangerouslySetInnerHTML={{ __html: post.permbajtja || '' }}
+        />
 
         {/* ── Actions bar ── */}
         <div style={{
@@ -289,13 +314,21 @@ export default function SinglePost() {
             onMouseLeave={e => { if (!liked) e.currentTarget.style.color = 'rgba(255,255,255,0.5)'; }}
           >
             {liked ? (
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="#ff4444" stroke="#ff4444" strokeWidth="2">
+              <motion.svg
+                whileTap={{ scale: 1.4 }}
+                transition={{ type: 'spring', stiffness: 400, damping: 10 }}
+                width="16" height="16" viewBox="0 0 24 24" fill="#ff4444" stroke="#ff4444" strokeWidth="2"
+              >
                 <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/>
-              </svg>
+              </motion.svg>
             ) : (
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <motion.svg
+                whileTap={{ scale: 1.4 }}
+                transition={{ type: 'spring', stiffness: 400, damping: 10 }}
+                width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"
+              >
                 <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/>
-              </svg>
+              </motion.svg>
             )}
             {likes > 0 && <span>{likes}</span>}
           </button>
@@ -373,6 +406,7 @@ export default function SinglePost() {
                   key={c.id || i}
                   comment={c}
                   user={user}
+                  index={i}
                   onDeleteRequest={(commentId) => setDeleteModal({ open: true, commentId })}
                 />
               ))}

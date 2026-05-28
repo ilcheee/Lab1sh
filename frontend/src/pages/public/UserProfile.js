@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
+import { motion } from 'framer-motion';
 import API from '../../api/axios';
 import PublicLayout from './PublicLayout';
 import { useAuth } from '../../context/AuthContext';
@@ -16,6 +17,11 @@ const ROLE_LABEL = { 1: 'Admin', 2: 'Editor', 3: 'Author' };
 const labelStyle = {
   display: 'block', color: 'rgba(255,255,255,0.35)', fontSize: 11, fontWeight: 600,
   marginBottom: 8, textTransform: 'uppercase', letterSpacing: '0.5px',
+};
+
+const postItemVariants = {
+  hidden: { opacity: 0, y: 12 },
+  show: (i) => ({ opacity: 1, y: 0, transition: { duration: 0.35, delay: i * 0.07 } }),
 };
 
 export default function UserProfile() {
@@ -106,18 +112,34 @@ export default function UserProfile() {
             </div>
           ) : (
             <div style={{ display: 'flex', gap: 20, alignItems: 'flex-start', marginBottom: 24 }}>
-              <div style={{
-                width: 72, height: 72, borderRadius: '50%', flexShrink: 0,
-                background: 'rgba(255,255,255,0.08)', border: '1px solid rgba(255,255,255,0.12)',
-                display: 'flex', alignItems: 'center', justifyContent: 'center',
-                fontWeight: 700, fontSize: 24, color: 'rgba(255,255,255,0.7)',
-              }}>{initials}</div>
+              {/* Avatar scale-in */}
+              <motion.div
+                initial={{ scale: 0.8, opacity: 0 }}
+                animate={{ scale: 1, opacity: 1 }}
+                transition={{ duration: 0.4, ease: 'easeOut' }}
+                style={{
+                  width: 72, height: 72, borderRadius: '50%', flexShrink: 0,
+                  background: 'rgba(255,255,255,0.08)', border: '1px solid rgba(255,255,255,0.12)',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  fontWeight: 700, fontSize: 24, color: 'rgba(255,255,255,0.7)',
+                }}
+              >{initials}</motion.div>
 
-              <div>
+              {/* Profile info stagger */}
+              <motion.div
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.4, delay: 0.1 }}
+              >
                 <h1 style={{ fontSize: 22, fontWeight: 700, color: '#fff', marginBottom: 6 }}>
                   {displayUser?.emri || 'User'}
                 </h1>
-                <div style={{ display: 'flex', gap: 10, alignItems: 'center', flexWrap: 'wrap', marginBottom: 10 }}>
+                <motion.div
+                  initial={{ opacity: 0, y: 8 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.35, delay: 0.2 }}
+                  style={{ display: 'flex', gap: 10, alignItems: 'center', flexWrap: 'wrap', marginBottom: 10 }}
+                >
                   <span style={{
                     fontSize: 11, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.5px',
                     color: 'rgba(255,255,255,0.5)', background: 'rgba(255,255,255,0.06)',
@@ -128,13 +150,18 @@ export default function UserProfile() {
                       Joined {fmtDate(displayUser.created_at)}
                     </span>
                   )}
-                </div>
-                <div style={{ display: 'flex', gap: 20 }}>
+                </motion.div>
+                <motion.div
+                  initial={{ opacity: 0, y: 8 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.35, delay: 0.3 }}
+                  style={{ display: 'flex', gap: 20 }}
+                >
                   <span style={{ color: 'rgba(255,255,255,0.45)', fontSize: 13 }}>
                     <strong style={{ color: '#fff' }}>{posts.length}</strong> posts
                   </span>
-                </div>
-              </div>
+                </motion.div>
+              </motion.div>
             </div>
           )}
 
@@ -168,19 +195,28 @@ export default function UserProfile() {
                 )}
               </div>
             ) : (
-              posts.map(post => (
-                <Link key={post.id} to={`/blog/${post.id}`} style={{ textDecoration: 'none', display: 'block', marginBottom: 10 }}>
-                  <div
-                    style={{ background: '#0d0d0d', border: '1px solid rgba(255,255,255,0.07)', borderRadius: 8, padding: '16px 20px', transition: 'border-color 0.15s' }}
-                    onMouseEnter={e => e.currentTarget.style.borderColor = 'rgba(255,255,255,0.15)'}
-                    onMouseLeave={e => e.currentTarget.style.borderColor = 'rgba(255,255,255,0.07)'}
-                  >
-                    <h3 style={{ fontSize: 15, fontWeight: 600, color: '#fff', marginBottom: 4 }}>{post.titulli}</h3>
-                    <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.3)' }}>
-                      {fmtShort(post.created_at)}{post.kategoria && ` · ${post.kategoria}`}
+              posts.map((post, i) => (
+                <motion.div
+                  key={post.id}
+                  custom={i}
+                  variants={postItemVariants}
+                  initial="hidden"
+                  animate="show"
+                  style={{ marginBottom: 10 }}
+                >
+                  <Link to={`/blog/${post.id}`} style={{ textDecoration: 'none', display: 'block' }}>
+                    <div
+                      style={{ background: '#0d0d0d', border: '1px solid rgba(255,255,255,0.07)', borderRadius: 8, padding: '16px 20px', transition: 'border-color 0.15s' }}
+                      onMouseEnter={e => e.currentTarget.style.borderColor = 'rgba(255,255,255,0.15)'}
+                      onMouseLeave={e => e.currentTarget.style.borderColor = 'rgba(255,255,255,0.07)'}
+                    >
+                      <h3 style={{ fontSize: 15, fontWeight: 600, color: '#fff', marginBottom: 4 }}>{post.titulli}</h3>
+                      <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.3)' }}>
+                        {fmtShort(post.created_at)}{post.kategoria && ` · ${post.kategoria}`}
+                      </div>
                     </div>
-                  </div>
-                </Link>
+                  </Link>
+                </motion.div>
               ))
             )}
           </div>
