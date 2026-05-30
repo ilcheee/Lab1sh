@@ -2,17 +2,19 @@ const PERMISSIONS = {
   super_admin: ['*'],
   admin: [
     'posts.create', 'posts.edit_all', 'posts.delete_all', 'posts.publish', 'posts.approve',
-    'comments.manage_all', 'users.manage', 'users.change_role',
+    'comments.create', 'comments.edit_own', 'comments.manage_all',
+    'users.manage', 'users.change_role',
     'categories.manage', 'settings.manage', 'media.manage', 'media.upload',
     'newsletter.manage', 'dashboard.view',
   ],
   redaktor: [
     'posts.create', 'posts.edit_all', 'posts.delete_all', 'posts.publish', 'posts.approve',
-    'comments.manage_all',
+    'comments.create', 'comments.edit_own', 'comments.manage_all',
     'dashboard.view',
   ],
   editor: [
     'posts.create', 'posts.edit_all',
+    'comments.create', 'comments.edit_own',
     'categories.manage', 'media.manage', 'media.upload',
     'dashboard.view',
   ],
