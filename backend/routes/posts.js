@@ -62,7 +62,7 @@ router.get('/pending', verifyToken, requireRoleMax(3), (req, res) => {
 
 // ─── GET ALL POSTS ────────────────────────────────────────
 router.get('/', (req, res) => {
-  const { statusi, category_id, user_id, limit } = req.query;
+  const { statusi, category_id, user_id, limit, admin } = req.query;
 
   let sql = `
     SELECT p.*, u.emri AS autori, c.emertimi AS kategoria
@@ -73,22 +73,73 @@ router.get('/', (req, res) => {
   `;
   const values = [];
 
-  if (statusi) {
+  if (admin === 'true') {
+    // Admin view: no default status filter; optional explicit statusi still applies
+    if (statusi) { sql += ' AND p.statusi = ?'; values.push(statusi); }
+  } else if (statusi) {
     if (statusi === 'published') {
       sql += " AND p.statusi IN ('published', 'publikuar')";
     } else {
       sql += ' AND p.statusi = ?';
       values.push(statusi);
     }
+  } else {
+    // Public default: published only
+    sql += " AND p.statusi = 'publikuar'";
   }
+
   if (category_id) { sql += ' AND p.category_id = ?'; values.push(parseInt(category_id)); }
   if (user_id) { sql += ' AND p.user_id = ?'; values.push(parseInt(user_id)); }
 
-  sql += ' ORDER BY p.created_at DESC';
+  sql += ' ORDER BY p.pinned DESC, p.created_at DESC';
   if (limit) { sql += ' LIMIT ?'; values.push(parseInt(limit)); }
 
   db.query(sql, values, (err, results) => {
     if (err) return res.status(500).json({ message: 'Server error', error: err });
+    res.json(results);
+  });
+});
+
+// ─── SEARCH POSTS ────────────────────────────────────────
+router.get('/search', (req, res) => {
+  const { q, category_id } = req.query;
+  let sql = `
+    SELECT p.*, u.emri AS autori, c.emertimi AS kategoria
+    FROM posts p
+    LEFT JOIN users u ON p.user_id = u.id
+    LEFT JOIN categories c ON p.category_id = c.id
+    WHERE p.statusi = 'publikuar'
+  `;
+  const values = [];
+  if (q) {
+    sql += ` AND (p.titulli LIKE ? OR p.permbajtja LIKE ?)`;
+    values.push(`%${q}%`, `%${q}%`);
+  }
+  if (category_id) {
+    sql += ` AND p.category_id = ?`;
+    values.push(category_id);
+  }
+  sql += ` ORDER BY p.created_at DESC`;
+  db.query(sql, values, (err, results) => {
+    if (err) return res.status(500).json({ message: 'Error' });
+    res.json(results);
+  });
+});
+
+// ─── TRENDING POSTS ──────────────────────────────────────
+router.get('/trending', (req, res) => {
+  const sql = `
+    SELECT p.*, u.emri AS autori, c.emertimi AS kategoria,
+    (SELECT COUNT(*) FROM post_likes WHERE post_id = p.id) AS like_count
+    FROM posts p
+    LEFT JOIN users u ON p.user_id = u.id
+    LEFT JOIN categories c ON p.category_id = c.id
+    WHERE p.statusi = 'publikuar'
+    ORDER BY like_count DESC, p.created_at DESC
+    LIMIT 10
+  `;
+  db.query(sql, (err, results) => {
+    if (err) return res.status(500).json({ message: 'Error' });
     res.json(results);
   });
 });
@@ -110,28 +161,60 @@ router.get('/:id', (req, res) => {
 });
 
 // ─── CREATE POST ──────────────────────────────────────────
-// role_id <= 6 can create; author/contributor/editor are forced to pending
 router.post('/', verifyToken, requireRoleMax(6), checkRole('posts.create'), (req, res) => {
-  const { titulli, permbajtja, category_id, statusi, data_publikimit, imazhi } = req.body;
+  console.log('POST /posts body:', req.body);
+  const { titulli, permbajtja, category_id, category_name, statusi, data_publikimit, imazhi } = req.body;
 
   if (!titulli || !permbajtja)
     return res.status(400).json({ message: 'Title and content are required' });
 
-  // Only super_admin, admin, redaktor (role <= 3) can publish directly
-  const canPublish = req.user.role_id <= 3;
+  // role <= 4 (admin/redaktor/editor) can publish directly; author/contributor → pending
+  const canPublish = req.user.role_id <= 4;
   let finalStatus = statusi || 'draft';
   if (!canPublish && (finalStatus === 'publikuar' || finalStatus === 'published')) {
     finalStatus = 'pending';
   }
 
-  const sql = `
-    INSERT INTO posts (titulli, permbajtja, user_id, category_id, statusi, data_publikimit, imazhi)
-    VALUES (?, ?, ?, ?, ?, ?, ?)
-  `;
-  db.query(sql, [titulli, permbajtja, req.user.id, category_id || null, finalStatus, data_publikimit || null, imazhi || null], (err, result) => {
-    if (err) return res.status(500).json({ message: 'Server error', error: err });
-    res.status(201).json({ message: 'Post created', id: result.insertId, statusi: finalStatus });
-  });
+  const insertPost = (cat_id) => {
+    db.query(
+      'INSERT INTO posts (titulli, permbajtja, user_id, category_id, statusi, data_publikimit, imazhi) VALUES (?, ?, ?, ?, ?, ?, ?)',
+      [titulli, permbajtja, req.user.id, cat_id || null, finalStatus, data_publikimit || null, imazhi || null],
+      (err, result) => {
+        if (err) return res.status(500).json({ message: 'Server error', error: err });
+        res.status(201).json({ message: 'Post created', id: result.insertId, statusi: finalStatus });
+      }
+    );
+  };
+
+  // category_id provided as number → use directly
+  if (category_id && !isNaN(category_id)) {
+    return insertPost(parseInt(category_id));
+  }
+
+  // category_name provided as text → find or create
+  if (category_name && category_name.trim()) {
+    const name = category_name.trim();
+    const slug = name.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '');
+    db.query(
+      'SELECT id FROM categories WHERE emertimi = ? OR slug = ?',
+      [name, slug],
+      (err, rows) => {
+        if (err) return res.status(500).json({ message: 'Server error', error: err });
+        if (rows.length > 0) return insertPost(rows[0].id);
+        db.query(
+          'INSERT INTO categories (emertimi, slug) VALUES (?, ?)',
+          [name, slug],
+          (err2, result2) => {
+            if (err2) return insertPost(null);
+            insertPost(result2.insertId);
+          }
+        );
+      }
+    );
+    return;
+  }
+
+  insertPost(null);
 });
 
 // ─── APPROVE / REJECT POST (role <= 3) ───────────────────
@@ -146,27 +229,33 @@ router.put('/:id/approve', verifyToken, requireRoleMax(3), (req, res) => {
   });
 });
 
+// ─── TOGGLE PIN POST (redaktor/admin only) ───────────────
+router.put('/:id/pin', verifyToken, requireRoleMax(3), (req, res) => {
+  db.query('SELECT pinned FROM posts WHERE id = ?', [req.params.id], (err, rows) => {
+    if (err) return res.status(500).json({ message: 'Server error' });
+    if (!rows.length) return res.status(404).json({ message: 'Post not found' });
+    const newPinned = rows[0].pinned ? 0 : 1;
+    db.query('UPDATE posts SET pinned = ? WHERE id = ?', [newPinned, req.params.id], (err2) => {
+      if (err2) return res.status(500).json({ message: 'Server error' });
+      res.json({ pinned: newPinned === 1 });
+    });
+  });
+});
+
 // ─── UPDATE POST ──────────────────────────────────────────
 router.put('/:id', verifyToken, checkPostOwnership('posts.edit_all', 'posts.edit_own'), (req, res) => {
   const { titulli, permbajtja, category_id, statusi, data_publikimit, imazhi } = req.body;
+  console.log('Updating post', req.params.id, 'with statusi:', statusi);
 
-  // Only role <= 3 can set published status
-  const canPublish = req.user.role_id <= 3;
-  let finalStatus = statusi;
-  if (!canPublish && (finalStatus === 'publikuar' || finalStatus === 'published')) {
-    return res.status(403).json({ message: 'Nuk ke privilegje për të publikuar' });
-  }
-
-  const sql = `
-    UPDATE posts
-    SET titulli=?, permbajtja=?, category_id=?, statusi=?, data_publikimit=?, imazhi=?
-    WHERE id=?
-  `;
-  db.query(sql, [titulli, permbajtja, category_id || null, finalStatus, data_publikimit || null, imazhi || null, req.params.id], (err, result) => {
-    if (err) return res.status(500).json({ message: 'Server error', error: err });
-    if (!result.affectedRows) return res.status(404).json({ message: 'Post not found' });
-    res.json({ message: 'Post updated' });
-  });
+  db.query(
+    `UPDATE posts SET titulli=?, permbajtja=?, category_id=?, statusi=?, data_publikimit=?, imazhi=? WHERE id=?`,
+    [titulli, permbajtja, category_id || null, statusi, data_publikimit || null, imazhi || null, req.params.id],
+    (err, result) => {
+      if (err) return res.status(500).json({ message: 'Error', error: err });
+      if (result.affectedRows === 0) return res.status(404).json({ message: 'Post not found' });
+      res.json({ message: 'Post updated successfully' });
+    }
+  );
 });
 
 // ─── DELETE POST ──────────────────────────────────────────
