@@ -20,43 +20,44 @@ const checkCommentOwnership = (req, res, next) => {
   return res.status(403).json({ message: 'Nuk ke privilegje për këtë veprim' });
 };
 
-// ─── GET COMMENTS ─────────────────────────────────────────
-// Returns author's role_id so frontend can style contributor comments
+// ─── GET COMMENTS (public) ────────────────────────────────
 router.get('/', (req, res) => {
+  res.set('Cache-Control', 'no-store, no-cache, must-revalidate');
+  res.set('Pragma', 'no-cache');
   const { post_id } = req.query;
   let sql = `
-    SELECT c.*, u.emri AS autori, u.role_id AS author_role_id
+    SELECT c.id, c.post_id, c.user_id, c.permbajtja,
+           c.data, c.statusi, c.pinned,
+           u.emri AS autori, u.role_id
     FROM comments c
     LEFT JOIN users u ON c.user_id = u.id
   `;
   const values = [];
   if (post_id) { sql += ' WHERE c.post_id = ?'; values.push(post_id); }
-  sql += ' ORDER BY c.data DESC';
+  sql += ' ORDER BY c.pinned DESC, c.data ASC';
 
   db.query(sql, values, (err, results) => {
-    if (err) return res.status(500).json({ message: 'Gabim në server', error: err });
+    if (err) return res.status(500).json({ message: 'Error', error: err });
     res.json(results);
   });
 });
 
 // ─── CREATE ───────────────────────────────────────────────
-// Only role_id <= 6 (not members or guests)
-router.post('/', verifyToken, (req, res, next) => {
+router.post('/', verifyToken, (req, res) => {
   if (!req.user || req.user.role_id > 6) {
-    return res.status(403).json({ message: 'Nuk ke privilegje për të komentuar' });
+    return res.status(403).json({ message: 'No permission to comment' });
   }
-  next();
-}, checkRole('comments.create'), (req, res) => {
   const { post_id, permbajtja } = req.body;
-  if (!post_id || !permbajtja)
-    return res.status(400).json({ message: 'post_id dhe përmbajtja janë të detyrueshme' });
-
+  console.log('Comment received:', { post_id, permbajtja, user: req.user.id });
+  if (!post_id || !permbajtja || permbajtja.trim() === '') {
+    return res.status(400).json({ message: 'Komenti nuk mund të jetë bosh' });
+  }
   db.query(
     'INSERT INTO comments (post_id, user_id, permbajtja) VALUES (?, ?, ?)',
-    [post_id, req.user.id, permbajtja],
+    [post_id, req.user.id, permbajtja.trim()],
     (err, result) => {
-      if (err) return res.status(500).json({ message: 'Gabim në server', error: err });
-      res.status(201).json({ message: 'Komenti u shtua me sukses', id: result.insertId });
+      if (err) return res.status(500).json({ message: 'Error', error: err });
+      res.status(201).json({ message: 'Komenti u shtua', id: result.insertId });
     }
   );
 });
@@ -64,9 +65,15 @@ router.post('/', verifyToken, (req, res, next) => {
 // ─── UPDATE ───────────────────────────────────────────────
 router.put('/:id', verifyToken, checkCommentOwnership, (req, res) => {
   const { permbajtja, statusi } = req.body;
+  const setClauses = [];
+  const values = [];
+  if (permbajtja !== undefined) { setClauses.push('permbajtja = ?'); values.push(permbajtja); }
+  if (statusi !== undefined)    { setClauses.push('statusi = ?');    values.push(statusi); }
+  if (!setClauses.length) return res.status(400).json({ message: 'No fields to update' });
+  values.push(req.params.id);
   db.query(
-    'UPDATE comments SET permbajtja=?, statusi=? WHERE id=?',
-    [permbajtja, statusi || 'pending', req.params.id],
+    `UPDATE comments SET ${setClauses.join(', ')} WHERE id = ?`,
+    values,
     (err, result) => {
       if (err) return res.status(500).json({ message: 'Gabim në server', error: err });
       if (!result.affectedRows) return res.status(404).json({ message: 'Komenti nuk u gjet' });
@@ -81,6 +88,20 @@ router.delete('/:id', verifyToken, checkCommentOwnership, (req, res) => {
     if (err) return res.status(500).json({ message: 'Gabim në server', error: err });
     if (!result.affectedRows) return res.status(404).json({ message: 'Komenti nuk u gjet' });
     res.json({ message: 'Komenti u fshi me sukses' });
+  });
+});
+
+// ─── TOGGLE PIN COMMENT (redaktor/admin only) ────────────
+router.put('/:id/pin', verifyToken, (req, res) => {
+  if (!req.user || req.user.role_id > 3) return res.status(403).json({ message: 'Nuk ke privilegje' });
+  db.query('SELECT pinned FROM comments WHERE id = ?', [req.params.id], (err, rows) => {
+    if (err) return res.status(500).json({ message: 'Server error' });
+    if (!rows.length) return res.status(404).json({ message: 'Comment not found' });
+    const newPinned = rows[0].pinned ? 0 : 1;
+    db.query('UPDATE comments SET pinned = ? WHERE id = ?', [newPinned, req.params.id], (err2) => {
+      if (err2) return res.status(500).json({ message: 'Server error' });
+      res.json({ pinned: newPinned === 1 });
+    });
   });
 });
 
