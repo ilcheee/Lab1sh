@@ -14,7 +14,10 @@ export default function PostForm() {
   const navigate = useNavigate();
   const { user } = useAuth();
   const isEdit = !!id;
-  const isContributor = user?.role_id === 6;
+  const role = user?.role_id ?? 99;
+  const canSetPublished = role <= 3;   // super_admin / admin / redaktor
+  const canSetAnyStatus = role <= 3;   // same group sees pending/rejected too
+  const isAuthorOrBelow = role >= 5;   // author / contributor → status locked
 
   const [form, setForm] = useState({
     titulli: '',
@@ -25,6 +28,7 @@ export default function PostForm() {
     imazhi: '',
   });
   const [categories, setCategories] = useState([]);
+  const [newCatName, setNewCatName] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
 
@@ -37,7 +41,7 @@ export default function PostForm() {
           titulli: p.titulli || '',
           permbajtja: p.permbajtja || '',
           category_id: p.category_id || '',
-          statusi: p.statusi === 'publikuar' ? 'published' : (p.statusi || 'draft'),
+          statusi: p.statusi || 'draft',
           data_publikimit: p.data_publikimit ? p.data_publikimit.slice(0, 10) : '',
           imazhi: p.imazhi || '',
         });
@@ -52,10 +56,16 @@ export default function PostForm() {
     setError('');
     setLoading(true);
     try {
+      const payload = { ...form };
+      // If user typed a new category name (no existing category selected), pass it
+      if (!payload.category_id && newCatName.trim()) {
+        payload.category_name = newCatName.trim();
+        delete payload.category_id;
+      }
       if (isEdit) {
-        await API.put(`/posts/${id}`, form);
+        await API.put(`/posts/${id}`, payload);
       } else {
-        await API.post('/posts', form);
+        await API.post('/posts', payload);
       }
       navigate('/posts');
     } catch (err) {
@@ -91,12 +101,23 @@ export default function PostForm() {
             </div>
             <div>
               <label style={labelStyle}>Category</label>
-              <select name="category_id" value={form.category_id} onChange={handleChange} className="ubt-input">
+              <select name="category_id" value={form.category_id} onChange={e => { handleChange(e); if (e.target.value) setNewCatName(''); }} className="ubt-input">
                 <option value="">— No category —</option>
                 {categories.map(c => (
                   <option key={c.id} value={c.id}>{c.emertimi}</option>
                 ))}
               </select>
+              {!form.category_id && (
+                <div style={{ marginTop: 8 }}>
+                  <input
+                    value={newCatName}
+                    onChange={e => setNewCatName(e.target.value)}
+                    className="ubt-input"
+                    placeholder="Or type a new category name…"
+                    style={{ fontSize: 13 }}
+                  />
+                </div>
+              )}
             </div>
           </div>
 
@@ -111,15 +132,23 @@ export default function PostForm() {
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 20, marginBottom: 20 }}>
             <div>
               <label style={labelStyle}>Status</label>
-              <select name="statusi" value={form.statusi} onChange={handleChange} className="ubt-input">
-                <option value="draft">Draft</option>
-                {!isContributor && <option value="published">Published</option>}
-                <option value="archived">Archived</option>
-              </select>
-              {isContributor && (
-                <div style={{ marginTop: 6, fontSize: 11, color: 'rgba(255,255,255,0.3)' }}>
-                  Needs editor approval to publish
-                </div>
+              {isAuthorOrBelow ? (
+                <>
+                  <div className="ubt-input" style={{ color: 'rgba(255,255,255,0.4)', cursor: 'default' }}>
+                    {form.statusi}
+                  </div>
+                  <div style={{ marginTop: 6, fontSize: 11, color: 'rgba(255,255,255,0.3)' }}>
+                    Needs editor approval to publish
+                  </div>
+                </>
+              ) : (
+                <select name="statusi" value={form.statusi} onChange={handleChange} className="ubt-input">
+                  <option value="draft">Draft</option>
+                  <option value="publikuar">Published</option>
+                  {canSetAnyStatus && <option value="pending">Pending</option>}
+                  {canSetAnyStatus && <option value="rejected">Rejected</option>}
+                  <option value="archived">Archived</option>
+                </select>
               )}
             </div>
             <div>
