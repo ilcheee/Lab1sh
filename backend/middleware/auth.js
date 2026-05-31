@@ -9,7 +9,7 @@ const verifyToken = (req, res, next) => {
     req.user = decoded;
     next();
   } catch {
-    return res.status(403).json({ message: 'Token i pavlefshem' });
+    return res.status(401).json({ message: 'Token i pavlefshem ose i skaduar' });
   }
 };
 
