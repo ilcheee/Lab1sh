@@ -14,6 +14,15 @@ import CategoryPosts from './pages/public/CategoryPosts';
 import UserPostForm from './pages/public/UserPostForm';
 import UserProfile from './pages/public/UserProfile';
 import About from './pages/public/About';
+import SearchPage from './pages/public/SearchPage';
+import TrendingPage from './pages/public/TrendingPage';
+import ContactPage from './pages/public/ContactPage';
+
+// Panel
+import RedaktorPanel from './pages/panel/RedaktorPanel';
+
+// Admin extras
+import ContactRequests from './pages/admin/ContactRequests';
 
 // Admin dashboard
 import Dashboard from './pages/dashboard/Dashboard';
@@ -101,6 +110,9 @@ function AppRoutes() {
           {/* ── Public (no login required) ── */}
           <Route path="/" element={<HomePage />} />
           <Route path="/about" element={<About />} />
+          <Route path="/search" element={<SearchPage />} />
+          <Route path="/trending" element={<TrendingPage />} />
+          <Route path="/contact" element={<ContactPage />} />
           <Route path="/login" element={<Login />} />
           <Route path="/register" element={<Register />} />
 
@@ -122,6 +134,8 @@ function AppRoutes() {
 
           {/* ── Redaktor+ (roles 1–3): can approve posts ── */}
           <Route path="/comments" element={<RedaktorRoute><CommentList /></RedaktorRoute>} />
+          <Route path="/panel" element={<RedaktorRoute><RedaktorPanel /></RedaktorRoute>} />
+          <Route path="/admin/contact" element={<RedaktorRoute><ContactRequests /></RedaktorRoute>} />
 
           {/* ── Editor+ (roles 1–4) ── */}
           <Route path="/categories" element={<EditorRoute><CategoryList /></EditorRoute>} />
