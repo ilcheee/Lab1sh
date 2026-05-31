@@ -41,13 +41,14 @@ export default function UserProfile() {
   const [saving, setSaving] = useState(false);
   const [saveMsg, setSaveMsg] = useState('');
   const [writeModal, setWriteModal] = useState(false);
+  const [deleteModal, setDeleteModal] = useState({ open: false, postId: null });
 
   useEffect(() => {
     if (!userId) { navigate('/login'); return; }
 
     const fetches = [
       API.get(`/users/${userId}`).catch(() => ({ data: null })),
-      API.get(`/posts?user_id=${userId}`).catch(() => ({ data: [] })),
+      API.get(`/posts?user_id=${userId}${isOwn ? '&admin=true' : ''}`).catch(() => ({ data: [] })),
     ];
 
     Promise.all(fetches).then(([ur, pr]) => {
@@ -73,6 +74,15 @@ export default function UserProfile() {
     } finally {
       setSaving(false);
     }
+  };
+
+  const handleDeletePost = async () => {
+    const { postId } = deleteModal;
+    setDeleteModal({ open: false, postId: null });
+    try {
+      await API.delete(`/posts/${postId}`);
+      setPosts(prev => prev.filter(p => p.id !== postId));
+    } catch { /* silently fail */ }
   };
 
   const displayUser = isOwn ? authUser : profileUser;
@@ -195,29 +205,52 @@ export default function UserProfile() {
                 )}
               </div>
             ) : (
-              posts.map((post, i) => (
-                <motion.div
-                  key={post.id}
-                  custom={i}
-                  variants={postItemVariants}
-                  initial="hidden"
-                  animate="show"
-                  style={{ marginBottom: 10 }}
-                >
-                  <Link to={`/blog/${post.id}`} style={{ textDecoration: 'none', display: 'block' }}>
-                    <div
-                      style={{ background: '#0d0d0d', border: '1px solid rgba(255,255,255,0.07)', borderRadius: 16, padding: '16px 20px', transition: 'border-color 0.15s' }}
-                      onMouseEnter={e => e.currentTarget.style.borderColor = 'rgba(255,255,255,0.15)'}
-                      onMouseLeave={e => e.currentTarget.style.borderColor = 'rgba(255,255,255,0.07)'}
-                    >
-                      <h3 style={{ fontSize: 15, fontWeight: 600, color: '#fff', marginBottom: 4 }}>{post.titulli}</h3>
-                      <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.3)' }}>
-                        {fmtShort(post.created_at)}{post.kategoria && ` · ${post.kategoria}`}
+              posts.map((post, i) => {
+                const canDelete = authUser && (post.user_id === authUser.id || authUser.role_id <= 2);
+                return (
+                  <motion.div
+                    key={post.id}
+                    custom={i}
+                    variants={postItemVariants}
+                    initial="hidden"
+                    animate="show"
+                    style={{ marginBottom: 10, display: 'flex', gap: 8, alignItems: 'stretch' }}
+                  >
+                    <Link to={`/blog/${post.id}`} style={{ textDecoration: 'none', flex: 1 }}>
+                      <div
+                        style={{ background: '#0d0d0d', border: '1px solid rgba(255,255,255,0.07)', borderRadius: 16, padding: '16px 20px', transition: 'border-color 0.15s', height: '100%', boxSizing: 'border-box' }}
+                        onMouseEnter={e => e.currentTarget.style.borderColor = 'rgba(255,255,255,0.15)'}
+                        onMouseLeave={e => e.currentTarget.style.borderColor = 'rgba(255,255,255,0.07)'}
+                      >
+                        <h3 style={{ fontSize: 15, fontWeight: 600, color: '#fff', marginBottom: 4 }}>{post.titulli}</h3>
+                        <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.3)' }}>
+                          {fmtShort(post.created_at)}{post.kategoria && ` · ${post.kategoria}`}
+                        </div>
                       </div>
-                    </div>
-                  </Link>
-                </motion.div>
-              ))
+                    </Link>
+                    {canDelete && (
+                      <button
+                        onClick={() => setDeleteModal({ open: true, postId: post.id })}
+                        title="Delete post"
+                        style={{
+                          background: '#0d0d0d', border: '1px solid rgba(255,255,255,0.07)',
+                          borderRadius: 16, padding: '0 16px', cursor: 'pointer',
+                          color: 'rgba(255,68,68,0.5)', transition: 'all 0.15s', flexShrink: 0,
+                        }}
+                        onMouseEnter={e => { e.currentTarget.style.color = '#ff4444'; e.currentTarget.style.borderColor = 'rgba(255,68,68,0.3)'; }}
+                        onMouseLeave={e => { e.currentTarget.style.color = 'rgba(255,68,68,0.5)'; e.currentTarget.style.borderColor = 'rgba(255,255,255,0.07)'; }}
+                      >
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                          <polyline points="3 6 5 6 21 6"/>
+                          <path d="M19 6l-1 14H6L5 6"/>
+                          <path d="M10 11v6M14 11v6"/>
+                          <path d="M9 6V4h6v2"/>
+                        </svg>
+                      </button>
+                    )}
+                  </motion.div>
+                );
+              })
             )}
           </div>
         )}
@@ -272,6 +305,16 @@ export default function UserProfile() {
         onCancel={() => setWriteModal(false)}
         hideCancelButton
         borderAccent="#e53e3e"
+      />
+      <Modal
+        isOpen={deleteModal.open}
+        title="Delete post"
+        message="Are you sure you want to delete this post? This cannot be undone."
+        onConfirm={handleDeletePost}
+        onCancel={() => setDeleteModal({ open: false, postId: null })}
+        confirmLabel="Delete"
+        cancelLabel="Cancel"
+        isDelete
       />
     </PublicLayout>
   );

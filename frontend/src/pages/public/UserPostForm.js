@@ -69,7 +69,7 @@ export default function UserPostForm() {
       const res = await API.post('/posts', {
         titulli: form.titulli,
         permbajtja: form.permbajtja,
-        category_id: null,
+        category_name: form.category.trim() || undefined,
         statusi: form.statusi,
         imazhi,
       });
