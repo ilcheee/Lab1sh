@@ -1,10 +1,17 @@
 import { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 import API from '../../api/axios';
 import PublicLayout from './PublicLayout';
 import { useAuth } from '../../context/AuthContext';
 import Modal from '../../components/Modal';
+
+const PinSVG = ({ size = 12 }) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <line x1="12" y1="17" x2="12" y2="22"/>
+    <path d="M5 17h14v-1.76a2 2 0 0 0-1.11-1.79l-1.78-.9A2 2 0 0 1 15 10.76V6h1a2 2 0 0 0 0-4H8a2 2 0 0 0 0 4h1v4.76a2 2 0 0 1-1.11 1.79l-1.78.9A2 2 0 0 0 5 15.24Z"/>
+  </svg>
+);
 
 const fmtDate = (d) =>
   d ? new Date(d).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' }) : '';
@@ -26,12 +33,26 @@ const TrashIcon = () => (
   </svg>
 );
 
-function CommentItem({ comment, user, onDeleteRequest, index = 0 }) {
+function CommentItem({ comment, user, onDeleteRequest, onPinToggle, index = 0 }) {
   const [hovered, setHovered] = useState(false);
   const [trashHovered, setTrashHovered] = useState(false);
+  const [pinned, setPinned] = useState(!!comment.pinned);
   const initials = (comment.autori || 'A').slice(0, 2).toUpperCase();
-  const isContributor = comment.author_role_id === 6;
+  const isContributor = comment.role_id === 6;
   const canDelete = user && (user.id === comment.user_id || user.role_id <= 3);
+  const canPin = user && user.role_id <= 3;
+
+  const handlePin = async (e) => {
+    e.preventDefault();
+    const newPinned = !pinned;
+    setPinned(newPinned);
+    try {
+      await API.put(`/comments/${comment.id}/pin`);
+      if (onPinToggle) onPinToggle(comment.id, newPinned);
+    } catch {
+      setPinned(!newPinned);
+    }
+  };
 
   return (
     <motion.div
@@ -42,7 +63,7 @@ function CommentItem({ comment, user, onDeleteRequest, index = 0 }) {
       onMouseLeave={() => setHovered(false)}
       style={{
         display: 'flex', gap: 14, padding: '20px 0',
-        borderBottom: '1px solid rgba(255,255,255,0.07)',
+        borderBottom: `1px solid ${pinned ? 'rgba(255,255,255,0.12)' : 'rgba(255,255,255,0.07)'}`,
         position: 'relative',
         ...(isContributor && {
           background: 'rgba(135,206,235,0.12)',
@@ -52,6 +73,22 @@ function CommentItem({ comment, user, onDeleteRequest, index = 0 }) {
         }),
       }}
     >
+      {pinned && (
+        <motion.div
+          initial={{ opacity: 0, scale: 0.7 }}
+          animate={{ opacity: 1, scale: 1 }}
+          transition={{ type: 'spring', stiffness: 400, damping: 18 }}
+          style={{
+            position: 'absolute', top: 8, left: '50%', transform: 'translateX(-50%)',
+            display: 'flex', alignItems: 'center', gap: 4,
+            fontSize: 10, fontWeight: 600, color: 'rgba(255,255,255,0.6)',
+            background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.12)',
+            borderRadius: 20, padding: '2px 8px', whiteSpace: 'nowrap',
+          }}
+        >
+          <PinSVG size={9} /> Pinned
+        </motion.div>
+      )}
       <div style={{
         width: 36, height: 36, borderRadius: '50%',
         background: isContributor ? 'rgba(135,206,235,0.2)' : 'rgba(255,255,255,0.08)',
@@ -78,21 +115,41 @@ function CommentItem({ comment, user, onDeleteRequest, index = 0 }) {
         </div>
         <p style={{ color: 'rgba(255,255,255,0.55)', fontSize: 15, lineHeight: 1.7, margin: 0 }}>{comment.permbajtja}</p>
       </div>
-      {canDelete && (
-        <button
-          onClick={() => onDeleteRequest(comment.id)}
-          onMouseEnter={() => setTrashHovered(true)}
-          onMouseLeave={() => setTrashHovered(false)}
-          style={{
-            position: 'absolute', right: 0, top: 20,
-            background: 'none', border: 'none', cursor: 'pointer', padding: 4,
-            color: trashHovered ? '#ff4444' : hovered ? 'rgba(255,68,68,0.6)' : 'transparent',
-            transition: 'color 0.15s',
-          }}
-        >
-          <TrashIcon />
-        </button>
-      )}
+      <div style={{ position: 'absolute', right: 0, top: 20, display: 'flex', alignItems: 'center', gap: 4 }}>
+        {canPin && hovered && (
+          <motion.button
+            initial={{ opacity: 0, scale: 0.7 }}
+            animate={{ opacity: 1, scale: 1 }}
+            exit={{ opacity: 0, scale: 0.7 }}
+            onClick={handlePin}
+            title={pinned ? 'Unpin comment' : 'Pin comment'}
+            style={{
+              background: 'none', border: 'none', cursor: 'pointer', padding: 4,
+              color: pinned ? 'rgba(255,255,255,0.6)' : 'rgba(255,255,255,0.25)',
+              transition: 'color 0.15s',
+              display: 'flex', alignItems: 'center',
+            }}
+            onMouseEnter={e => { e.currentTarget.style.color = '#fff'; }}
+            onMouseLeave={e => { e.currentTarget.style.color = pinned ? 'rgba(255,255,255,0.6)' : 'rgba(255,255,255,0.25)'; }}
+          >
+            <PinSVG size={13} />
+          </motion.button>
+        )}
+        {canDelete && (
+          <button
+            onClick={() => onDeleteRequest(comment.id)}
+            onMouseEnter={() => setTrashHovered(true)}
+            onMouseLeave={() => setTrashHovered(false)}
+            style={{
+              background: 'none', border: 'none', cursor: 'pointer', padding: 4,
+              color: trashHovered ? '#ff4444' : hovered ? 'rgba(255,68,68,0.6)' : 'transparent',
+              transition: 'color 0.15s',
+            }}
+          >
+            <TrashIcon />
+          </button>
+        )}
+      </div>
     </motion.div>
   );
 }
@@ -115,7 +172,12 @@ export default function SinglePost() {
   const [successMsg, setSuccessMsg] = useState('');
   const [submitErr, setSubmitErr] = useState('');
   const [likes, setLikes] = useState(0);
-  const [liked, setLiked] = useState(false);
+  const [liked, setLiked] = useState(() => {
+    if (user?.id && id) {
+      return localStorage.getItem(`liked_post_${id}_${user.id}`) === 'true';
+    }
+    return false;
+  });
   const [deleteModal, setDeleteModal] = useState({ open: false, commentId: null });
 
   useEffect(() => {
@@ -124,16 +186,25 @@ export default function SinglePost() {
       .then(res => {
         const p = res.data;
         setPost(p); setLikes(p.likes || 0);
-        return API.get(`/comments?post_id=${p.id}`).catch(() => ({ data: [] }));
+        API.get(`/comments?post_id=${p.id}&_t=${Date.now()}`)
+          .then(commRes => { setComments(Array.isArray(commRes.data) ? commRes.data : []); })
+          .catch(err => { console.error('Comments fetch error:', err?.response?.data || err.message); })
+          .finally(() => setLoading(false));
       })
-      .then(res => { setComments(Array.isArray(res.data) ? res.data : []); setLoading(false); })
-      .catch(() => { setError('Post not found.'); setLoading(false); });
+      .catch((err) => {
+        console.error('Post fetch error:', err?.response?.data || err.message);
+        setError('Post not found.');
+        setLoading(false);
+      });
   }, [id]);
 
   useEffect(() => {
     if (user && id) {
       API.get(`/posts/${id}/like-status`)
-        .then(res => setLiked(res.data.liked))
+        .then(res => {
+          setLiked(res.data.liked);
+          localStorage.setItem(`liked_post_${id}_${user.id}`, String(res.data.liked));
+        })
         .catch(() => {});
     }
   }, [id, user]);
@@ -147,7 +218,7 @@ export default function SinglePost() {
       setCommentText('');
       setSuccessMsg('Comment posted successfully!');
       setTimeout(() => setSuccessMsg(''), 3000);
-      const res = await API.get(`/comments?post_id=${post.id}`).catch(() => ({ data: [] }));
+      const res = await API.get(`/comments?post_id=${post.id}&_t=${Date.now()}`).catch(() => ({ data: [] }));
       setComments(Array.isArray(res.data) ? res.data : []);
     } catch (err) {
       setSubmitErr(err.response?.data?.message || 'Could not send comment.');
@@ -159,11 +230,13 @@ export default function SinglePost() {
     const newLikedState = !liked;
     setLiked(newLikedState);
     setLikes(prev => newLikedState ? prev + 1 : prev - 1);
+    localStorage.setItem(`liked_post_${id}_${user.id}`, String(newLikedState));
     try {
       await API.post(`/posts/${post.id}/toggle-like`);
     } catch {
       setLiked(!newLikedState);
       setLikes(prev => newLikedState ? prev - 1 : prev + 1);
+      localStorage.setItem(`liked_post_${id}_${user.id}`, String(!newLikedState));
     }
   };
 
@@ -175,6 +248,15 @@ export default function SinglePost() {
       setComments(prev => prev.filter(c => c.id !== commentId));
     } catch { /* silently fail */ }
   };
+
+  const handleCommentPin = (commentId, newPinned) => {
+    setComments(prev => {
+      const updated = prev.map(c => c.id === commentId ? { ...c, pinned: newPinned ? 1 : 0 } : c);
+      return [...updated].sort((a, b) => (b.pinned || 0) - (a.pinned || 0));
+    });
+  };
+
+  const sortedComments = [...comments].sort((a, b) => (b.pinned || 0) - (a.pinned || 0));
 
   if (loading) return (
     <PublicLayout>
@@ -303,35 +385,60 @@ export default function SinglePost() {
           borderTop: '1px solid rgba(255,255,255,0.07)',
           display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 14,
         }}>
-          <button onClick={handleLike} style={{
-            display: 'flex', alignItems: 'center', gap: 6,
-            background: 'transparent', border: 'none', cursor: 'pointer', padding: 0,
-            color: liked ? '#ff4444' : 'rgba(255,255,255,0.5)',
-            fontSize: 13, fontFamily: "'Geist', sans-serif",
-            transition: 'color 0.15s',
-          }}
-            onMouseEnter={e => { if (!liked) e.currentTarget.style.color = '#ffffff'; }}
-            onMouseLeave={e => { if (!liked) e.currentTarget.style.color = 'rgba(255,255,255,0.5)'; }}
-          >
-            {liked ? (
-              <motion.svg
-                whileTap={{ scale: 1.4 }}
-                transition={{ type: 'spring', stiffness: 400, damping: 10 }}
-                width="16" height="16" viewBox="0 0 24 24" fill="#ff4444" stroke="#ff4444" strokeWidth="2"
-              >
-                <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/>
-              </motion.svg>
-            ) : (
-              <motion.svg
-                whileTap={{ scale: 1.4 }}
-                transition={{ type: 'spring', stiffness: 400, damping: 10 }}
-                width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"
-              >
-                <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/>
-              </motion.svg>
-            )}
-            {likes > 0 && <span>{likes}</span>}
-          </button>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+            <button onClick={handleLike} style={{
+              display: 'flex', alignItems: 'center', gap: 6,
+              background: 'transparent', border: 'none', cursor: 'pointer', padding: 0,
+              color: liked ? '#ff4444' : 'rgba(255,255,255,0.5)',
+              fontSize: 13, fontFamily: "'Geist', sans-serif",
+              transition: 'color 0.15s',
+            }}
+              onMouseEnter={e => { if (!liked) e.currentTarget.style.color = '#ffffff'; }}
+              onMouseLeave={e => { if (!liked) e.currentTarget.style.color = 'rgba(255,255,255,0.5)'; }}
+            >
+              {liked ? (
+                <motion.svg
+                  whileTap={{ scale: 1.4 }}
+                  transition={{ type: 'spring', stiffness: 400, damping: 10 }}
+                  width="16" height="16" viewBox="0 0 24 24" fill="#ff4444" stroke="#ff4444" strokeWidth="2"
+                >
+                  <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/>
+                </motion.svg>
+              ) : (
+                <motion.svg
+                  whileTap={{ scale: 1.4 }}
+                  transition={{ type: 'spring', stiffness: 400, damping: 10 }}
+                  width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"
+                >
+                  <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/>
+                </motion.svg>
+              )}
+              {likes > 0 && <span>{likes}</span>}
+            </button>
+            <AnimatePresence>
+              {liked && (
+                <motion.button
+                  key="unlike-x"
+                  initial={{ opacity: 0, scale: 0.5 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  exit={{ opacity: 0, scale: 0.5 }}
+                  transition={{ duration: 0.15, type: 'spring', stiffness: 400, damping: 18 }}
+                  onClick={handleLike}
+                  style={{
+                    background: 'none', border: 'none', cursor: 'pointer', padding: '2px 3px',
+                    color: 'rgba(255,255,255,0.4)', display: 'flex', alignItems: 'center',
+                    lineHeight: 1,
+                  }}
+                  onMouseEnter={e => { e.currentTarget.style.color = '#ff4444'; }}
+                  onMouseLeave={e => { e.currentTarget.style.color = 'rgba(255,255,255,0.4)'; }}
+                >
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
+                    <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+                  </svg>
+                </motion.button>
+              )}
+            </AnimatePresence>
+          </div>
 
           <a href="#comments" style={{
             display: 'flex', alignItems: 'center', gap: 6,
@@ -401,13 +508,14 @@ export default function SinglePost() {
             }}>No comments yet. Be the first.</div>
           ) : (
             <div style={{ marginBottom: 40 }}>
-              {comments.map((c, i) => (
+              {sortedComments.map((c, i) => (
                 <CommentItem
                   key={c.id || i}
                   comment={c}
                   user={user}
                   index={i}
                   onDeleteRequest={(commentId) => setDeleteModal({ open: true, commentId })}
+                  onPinToggle={handleCommentPin}
                 />
               ))}
             </div>

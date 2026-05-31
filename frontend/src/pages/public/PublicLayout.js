@@ -19,10 +19,15 @@ function NavCTA({ user, onClose, onWriteClick }) {
     <>
       {role <= 2 && (
         <Link to="/admin" onClick={onClose} className="ubt-btn ubt-btn-outline" style={{ padding: '7px 18px', fontSize: 13 }}>
-          Admin Panel
+          Panel
         </Link>
       )}
-      {role >= 3 && role <= 6 && (
+      {role === 3 && (
+        <Link to="/panel" onClick={onClose} className="ubt-btn ubt-btn-outline" style={{ padding: '7px 18px', fontSize: 13 }}>
+          Panel
+        </Link>
+      )}
+      {role >= 4 && role <= 6 && (
         <Link to="/blog/new" onClick={onClose} className="ubt-btn ubt-btn-secondary" style={{ padding: '7px 18px', fontSize: 13 }}>
           Write
         </Link>
@@ -108,12 +113,30 @@ export default function PublicLayout({ children }) {
           <motion.nav
             initial="hidden"
             animate="show"
-            variants={{ hidden: {}, show: { transition: { staggerChildren: 0.08 } } }}
-            style={{ display: 'flex', alignItems: 'center', gap: 28, flex: 1 }}
+            variants={{ hidden: {}, show: { transition: { staggerChildren: 0.06 } } }}
+            style={{ display: 'flex', alignItems: 'center', gap: 24, flex: 1 }}
           >
             {navLink('/', 'Home', 0)}
-            {navLink('/blog', 'Blog', 0.08)}
-            {navLink('/about', 'About', 0.16)}
+            {navLink('/blog', 'Blog', 0.06)}
+            {navLink('/trending', 'Trending', 0.12)}
+            {navLink('/contact', 'Contact', 0.18)}
+            {navLink('/about', 'About', 0.24)}
+            <motion.div key="/search" variants={navLinkVariants} transition={{ delay: 0.3 }}>
+              <Link to="/search" style={{
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                width: 30, height: 30, borderRadius: '50%',
+                border: '1px solid rgba(255,255,255,0.1)',
+                color: pathname === '/search' ? '#fff' : 'rgba(255,255,255,0.45)',
+                transition: 'all 0.15s',
+              }}
+              onMouseEnter={e => { e.currentTarget.style.borderColor = 'rgba(255,255,255,0.3)'; e.currentTarget.style.color = '#fff'; }}
+              onMouseLeave={e => { if (pathname !== '/search') { e.currentTarget.style.borderColor = 'rgba(255,255,255,0.1)'; e.currentTarget.style.color = 'rgba(255,255,255,0.45)'; } }}
+              >
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2">
+                  <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
+                </svg>
+              </Link>
+            </motion.div>
           </motion.nav>
 
           {/* Auth buttons */}
@@ -157,6 +180,9 @@ export default function PublicLayout({ children }) {
               <div style={{ maxWidth: 1200, margin: '0 auto', padding: '16px 24px 20px', display: 'flex', flexDirection: 'column', gap: 12 }}>
                 <Link to="/" onClick={() => setMenuOpen(false)} style={{ color: 'rgba(255,255,255,0.7)', fontSize: 15, textDecoration: 'none', fontWeight: 500 }}>Home</Link>
                 <Link to="/blog" onClick={() => setMenuOpen(false)} style={{ color: 'rgba(255,255,255,0.7)', fontSize: 15, textDecoration: 'none', fontWeight: 500 }}>Blog</Link>
+                <Link to="/trending" onClick={() => setMenuOpen(false)} style={{ color: 'rgba(255,255,255,0.7)', fontSize: 15, textDecoration: 'none', fontWeight: 500 }}>Trending</Link>
+                <Link to="/search" onClick={() => setMenuOpen(false)} style={{ color: 'rgba(255,255,255,0.7)', fontSize: 15, textDecoration: 'none', fontWeight: 500 }}>Search</Link>
+                <Link to="/contact" onClick={() => setMenuOpen(false)} style={{ color: 'rgba(255,255,255,0.7)', fontSize: 15, textDecoration: 'none', fontWeight: 500 }}>Contact</Link>
                 <Link to="/about" onClick={() => setMenuOpen(false)} style={{ color: 'rgba(255,255,255,0.7)', fontSize: 15, textDecoration: 'none', fontWeight: 500 }}>About</Link>
                 <div style={{ display: 'flex', gap: 10, marginTop: 8, flexWrap: 'wrap' }}>
                   {user ? (
