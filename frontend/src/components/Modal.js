@@ -12,6 +12,7 @@ export default function Modal({
   isDelete = false,
   hideCancelButton = false,
   borderAccent,
+  children,
 }) {
   useEffect(() => {
     if (!isOpen) return;
@@ -56,9 +57,10 @@ export default function Modal({
             <h3 style={{ fontSize: 16, fontWeight: 700, color: '#fff', margin: '0 0 10px' }}>
               {title}
             </h3>
-            <p style={{ fontSize: 14, color: 'rgba(255,255,255,0.55)', margin: '0 0 24px', lineHeight: 1.6 }}>
+            <p style={{ fontSize: 14, color: 'rgba(255,255,255,0.55)', margin: '0 0 8px', lineHeight: 1.6 }}>
               {message}
             </p>
+            {children && <div style={{ marginBottom: 16 }}>{children}</div>}
             <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end' }}>
               {!hideCancelButton && onCancel && (
                 <button

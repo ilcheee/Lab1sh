@@ -1,18 +1,22 @@
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { useAuth } from '../context/AuthContext';
+import { useState, useEffect } from 'react';
+import API from '../api/axios';
 
 const ALL_NAV_ITEMS = [
-  { to: '/admin',        icon: '▦',  label: 'Dashboard',  minRole: 1, maxRole: 2  },
-  { to: '/posts',        icon: '✎',  label: 'Posts',      minRole: 1, maxRole: 6  },
-  { to: '/categories',   icon: '⊞',  label: 'Categories', minRole: 1, maxRole: 4  },
-  { to: '/tags',         icon: '⊛',  label: 'Tags',       minRole: 1, maxRole: 4  },
-  { to: '/comments',     icon: '✉',  label: 'Comments',   minRole: 1, maxRole: 3  },
-  { to: '/pages',        icon: '☰',  label: 'Pages',      minRole: 1, maxRole: 4  },
-  { to: '/media',        icon: '⊡',  label: 'Media',      minRole: 1, maxRole: 6  },
-  { to: '/admin/users',  icon: '◎',  label: 'Users',      minRole: 1, maxRole: 2  },
-  { to: '/settings',     icon: '⚙',  label: 'Settings',   minRole: 1, maxRole: 2  },
-  { to: '/newsletter',   icon: '◈',  label: 'Newsletter', minRole: 1, maxRole: 2  },
+  { to: '/admin',          icon: '▦',  label: 'Panel',            minRole: 1, maxRole: 2  },
+  { to: '/panel',          icon: '◈',  label: 'Redaktor Panel',   minRole: 3, maxRole: 3  },
+  { to: '/posts',          icon: '✎',  label: 'Posts',            minRole: 1, maxRole: 6  },
+  { to: '/categories',     icon: '⊞',  label: 'Categories',       minRole: 1, maxRole: 4  },
+  { to: '/tags',           icon: '⊛',  label: 'Tags',             minRole: 1, maxRole: 4  },
+  { to: '/comments',       icon: '✉',  label: 'Comments',         minRole: 1, maxRole: 3  },
+  { to: '/pages',          icon: '☰',  label: 'Pages',            minRole: 1, maxRole: 4  },
+  { to: '/media',          icon: '⊡',  label: 'Media',            minRole: 1, maxRole: 6  },
+  { to: '/admin/users',    icon: '◎',  label: 'Users',            minRole: 1, maxRole: 2  },
+  { to: '/admin/contact',  icon: '⊕',  label: 'Contact Requests', minRole: 1, maxRole: 3, badge: true },
+  { to: '/settings',       icon: '⚙',  label: 'Settings',         minRole: 1, maxRole: 2  },
+  { to: '/newsletter',     icon: '◉',  label: 'Newsletter',       minRole: 1, maxRole: 2  },
 ];
 
 const ROLE_LABEL = {
@@ -34,13 +38,19 @@ export default function Sidebar() {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
   const { pathname } = useLocation();
+  const [contactBadge, setContactBadge] = useState(0);
 
   const handleLogout = () => { logout(); navigate('/login'); };
 
-  const isActive = (to) => pathname === to || (to !== '/admin' && pathname.startsWith(to));
+  const isActive = (to) => pathname === to || (to !== '/admin' && to !== '/panel' && pathname.startsWith(to));
 
   const role = user?.role_id || 8;
   const navItems = ALL_NAV_ITEMS.filter(item => role >= item.minRole && role <= item.maxRole);
+
+  useEffect(() => {
+    if (!user || user.role_id > 3) return;
+    API.get('/contact/pending-count').then(res => setContactBadge(res.data?.count || 0)).catch(() => {});
+  }, [user]);
 
   return (
     <div style={{
@@ -115,7 +125,14 @@ export default function Sidebar() {
                 onMouseLeave={e => { if (!active) { e.currentTarget.style.color = 'rgba(255,255,255,0.45)'; } }}
               >
                 <span style={{ fontSize: 14, width: 18, textAlign: 'center', flexShrink: 0, opacity: active ? 1 : 0.6 }}>{item.icon}</span>
-                {item.label}
+                <span style={{ flex: 1 }}>{item.label}</span>
+                {item.badge && contactBadge > 0 && (
+                  <span style={{
+                    fontSize: 10, fontWeight: 700, color: '#f59e0b',
+                    background: 'rgba(245,158,11,0.15)', border: '1px solid rgba(245,158,11,0.3)',
+                    borderRadius: 20, padding: '1px 7px', lineHeight: 1.6,
+                  }}>{contactBadge}</span>
+                )}
               </Link>
             </motion.div>
           );
