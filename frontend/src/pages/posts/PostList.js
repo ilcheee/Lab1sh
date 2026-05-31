@@ -47,7 +47,7 @@ export default function PostList() {
   const [toast, setToast] = useState(null);
 
   useEffect(() => {
-    API.get('/posts')
+    API.get('/posts?admin=true')
       .then(res => { setPosts(Array.isArray(res.data) ? res.data : []); setLoading(false); })
       .catch(() => { setError('Failed to load posts.'); setLoading(false); });
   }, []);
